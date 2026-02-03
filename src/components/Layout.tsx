@@ -44,8 +44,8 @@ export default function Layout({ children }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center space-x-2">
-              <HomeIcon className="w-5 h-5 text-gray-900 dark:text-white" />
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+              <HomeIcon className="w-4 h-4 md:w-5 md:h-5 text-gray-900 dark:text-white" />
+              <span className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
                 WASAPP
               </span>
             </Link>
@@ -76,7 +76,7 @@ export default function Layout({ children }: LayoutProps) {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[calc(100vh-4rem)]">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-8 min-h-[calc(100vh-4rem)]">
         {children}
       </main>
 

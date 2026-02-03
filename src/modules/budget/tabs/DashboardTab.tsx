@@ -118,80 +118,103 @@ export default function DashboardTab() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
             Financial Overview
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">
             {format(new Date(), 'MMMM yyyy')}
           </p>
         </div>
       </div>
 
-      {/* Main Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-xl">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-              <TrendingUp className="w-6 h-6" />
+      {/* Financial Overview Layout: Consult Form on Left, Stats Grid on Right */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* Financial Impact Analysis - Left Side */}
+        <div className="lg:col-span-1">
+          <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-xl text-white h-full">
+            <div className="flex items-center space-x-2 md:space-x-3 mb-3 md:mb-4">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-lg md:rounded-xl flex items-center justify-center backdrop-blur-sm flex-shrink-0">
+                <HelpCircle className="w-5 h-5 md:w-6 md:h-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base md:text-lg font-bold leading-tight">Financial Impact Analysis</h3>
+                <p className="text-purple-100 text-xs md:text-sm leading-tight mt-0.5">Analyze expenses and debts</p>
+              </div>
             </div>
-            <ArrowUpRight className="w-5 h-5 opacity-80" />
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-4">
+              <ConsultForm compact={true} />
+            </div>
           </div>
-          <p className="text-purple-100 text-sm mb-1">Monthly Income</p>
-          <p className="text-3xl font-bold">${monthlyIncome.toFixed(2)}</p>
         </div>
 
-        <div className="bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl p-6 text-white shadow-xl">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-              <TrendingDown className="w-6 h-6" />
+        {/* Financial Overview Stats - 2x2 Grid - Right Side */}
+        <div className="lg:col-span-2">
+          <div className="grid grid-cols-2 gap-3 md:gap-4 h-full">
+            <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl md:rounded-2xl p-3 md:p-4 text-white shadow-xl">
+              <div className="flex items-center justify-between mb-2 md:mb-3">
+                <div className="w-8 h-8 md:w-10 md:h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                  <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />
+                </div>
+                <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 opacity-80" />
+              </div>
+              <p className="text-purple-100 text-[10px] md:text-xs mb-1">Monthly Income</p>
+              <p className="text-base md:text-xl font-bold leading-tight">${monthlyIncome.toFixed(2)}</p>
             </div>
-            <ArrowDownRight className="w-5 h-5 opacity-80" />
-          </div>
-          <p className="text-red-100 text-sm mb-1">Monthly Expenses</p>
-          <p className="text-3xl font-bold">${monthlyExpenses.toFixed(2)}</p>
-        </div>
 
-        <div className={`rounded-2xl p-6 text-white shadow-xl ${
-          availableBudget >= 0 
-            ? 'bg-gradient-to-br from-green-500 to-emerald-600' 
-            : 'bg-gradient-to-br from-orange-500 to-red-600'
-        }`}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-              <Wallet className="w-6 h-6" />
+            <div className="bg-gradient-to-br from-red-500 to-pink-600 rounded-xl md:rounded-2xl p-3 md:p-4 text-white shadow-xl">
+              <div className="flex items-center justify-between mb-2 md:mb-3">
+                <div className="w-8 h-8 md:w-10 md:h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                  <TrendingDown className="w-4 h-4 md:w-5 md:h-5" />
+                </div>
+                <ArrowDownRight className="w-3 h-3 md:w-4 md:h-4 opacity-80" />
+              </div>
+              <p className="text-red-100 text-[10px] md:text-xs mb-1">Monthly Expenses</p>
+              <p className="text-base md:text-xl font-bold leading-tight">${monthlyExpenses.toFixed(2)}</p>
             </div>
-            {availableBudget >= 0 ? (
-              <ArrowUpRight className="w-5 h-5 opacity-80" />
-            ) : (
-              <ArrowDownRight className="w-5 h-5 opacity-80" />
-            )}
-          </div>
-          <p className="text-white/80 text-sm mb-1">Available Budget</p>
-          <p className="text-3xl font-bold">${availableBudget.toFixed(2)}</p>
-        </div>
 
-        <div className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl p-6 text-white shadow-xl">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-              <Target className="w-6 h-6" />
+            <div className={`rounded-xl md:rounded-2xl p-3 md:p-4 text-white shadow-xl ${
+              availableBudget >= 0 
+                ? 'bg-gradient-to-br from-green-500 to-emerald-600' 
+                : 'bg-gradient-to-br from-orange-500 to-red-600'
+            }`}>
+              <div className="flex items-center justify-between mb-2 md:mb-3">
+                <div className="w-8 h-8 md:w-10 md:h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                  <Wallet className="w-4 h-4 md:w-5 md:h-5" />
+                </div>
+                {availableBudget >= 0 ? (
+                  <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 opacity-80" />
+                ) : (
+                  <ArrowDownRight className="w-3 h-3 md:w-4 md:h-4 opacity-80" />
+                )}
+              </div>
+              <p className="text-white/80 text-[10px] md:text-xs mb-1">Available Budget</p>
+              <p className="text-base md:text-xl font-bold leading-tight">${availableBudget.toFixed(2)}</p>
             </div>
-            <ArrowUpRight className="w-5 h-5 opacity-80" />
+
+            <div className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl md:rounded-2xl p-3 md:p-4 text-white shadow-xl">
+              <div className="flex items-center justify-between mb-2 md:mb-3">
+                <div className="w-8 h-8 md:w-10 md:h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                  <Target className="w-4 h-4 md:w-5 md:h-5" />
+                </div>
+                <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 opacity-80" />
+              </div>
+              <p className="text-blue-100 text-[10px] md:text-xs mb-1">Total Savings</p>
+              <p className="text-base md:text-xl font-bold leading-tight">${totalSavings.toFixed(2)}</p>
+            </div>
           </div>
-          <p className="text-blue-100 text-sm mb-1">Total Savings</p>
-          <p className="text-3xl font-bold">${totalSavings.toFixed(2)}</p>
         </div>
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Expense Distribution Pie Chart */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center space-x-2 mb-6">
-            <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Expense Distribution</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-2 mb-4 md:mb-6">
+            <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-purple-600 dark:text-purple-400" />
+            <h3 className="text-base md:text-xl font-bold text-gray-900 dark:text-white">Expense Distribution</h3>
           </div>
           {pieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               <RechartsPieChart>
                 <Pie
                   data={pieData}
@@ -199,7 +222,7 @@ export default function DashboardTab() {
                   cy="50%"
                   labelLine={false}
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={100}
+                  outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -211,19 +234,19 @@ export default function DashboardTab() {
               </RechartsPieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-center h-[250px] text-gray-500 dark:text-gray-400 text-sm">
               No expense data available
             </div>
           )}
         </div>
 
         {/* Monthly Overview Bar Chart */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center space-x-2 mb-6">
-            <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Monthly Overview</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-2 mb-4 md:mb-6">
+            <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-purple-600 dark:text-purple-400" />
+            <h3 className="text-base md:text-xl font-bold text-gray-900 dark:text-white">Monthly Overview</h3>
           </div>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={250}>
             <BarChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
               <XAxis dataKey="name" />
@@ -239,48 +262,32 @@ export default function DashboardTab() {
         </div>
       </div>
 
-      {/* Quick Consult Card */}
-      <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 shadow-xl text-white">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-            <HelpCircle className="w-6 h-6" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold">Financial Impact Analysis</h3>
-            <p className="text-purple-100 text-sm">Analyze expenses and debts before committing</p>
-          </div>
-        </div>
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-          <ConsultForm compact={true} />
-        </div>
-      </div>
-
       {/* Additional Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center">
-              <CreditCard className="w-6 h-6 text-white" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-2 md:space-x-3 mb-3 md:mb-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg md:rounded-xl flex items-center justify-center">
+              <CreditCard className="w-5 h-5 md:w-6 md:h-6 text-white" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total Debt</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">${totalDebt.toFixed(2)}</p>
+              <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Total Debt</p>
+              <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">${totalDebt.toFixed(2)}</p>
             </div>
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Monthly Payments: ${monthlyDebtPayments.toFixed(2)}</p>
+          <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Monthly Payments: ${monthlyDebtPayments.toFixed(2)}</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-white" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-2 md:space-x-3 mb-3 md:mb-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg md:rounded-xl flex items-center justify-center">
+              <DollarSign className="w-5 h-5 md:w-6 md:h-6 text-white" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Debt Payments</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">${monthlyDebtPayments.toFixed(2)}</p>
+              <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Debt Payments</p>
+              <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">${monthlyDebtPayments.toFixed(2)}</p>
             </div>
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Active Debts: {debts.length}</p>
+          <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Active Debts: {debts.length}</p>
         </div>
       </div>
 

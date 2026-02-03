@@ -41,18 +41,18 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="w-full pb-20 md:pb-8 space-y-6">
+    <div className="w-full pb-20 md:pb-8 space-y-4 md:space-y-6">
       {/* Header with greeting */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
             Hello, Chris
           </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
             Welcome back to your dashboard
           </p>
         </div>
-        <div className="w-10 h-10 rounded-full overflow-hidden shadow-lg ring-2 ring-purple-500/50">
+        <div className="w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden shadow-lg ring-2 ring-purple-500/50">
           <img 
             src="/caveman4-01.png" 
             alt="Profile" 
@@ -62,40 +62,40 @@ export default function Home() {
       </div>
 
       {/* Total Balance and Modules - Side by Side */}
-      <div className="grid grid-cols-2 gap-4 w-full">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 w-full">
         {/* Total Balance Card */}
-        <div className="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] cursor-pointer flex flex-col justify-between">
+        <div className="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-xl md:rounded-2xl p-3 md:p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] cursor-pointer flex flex-col justify-between min-h-[120px] md:min-h-0">
           <div>
-            <p className="text-purple-100 text-xs mb-1">Total Balance</p>
-            <p className="text-2xl font-bold text-white">${totalBalance.toLocaleString()}</p>
+            <p className="text-purple-100 text-[10px] md:text-xs mb-1">Total Balance</p>
+            <p className="text-lg md:text-2xl font-bold text-white leading-tight">${totalBalance.toLocaleString()}</p>
           </div>
-          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mt-4">
-            <TrendingUp className="w-6 h-6 text-white" />
+          <div className="w-8 h-8 md:w-12 md:h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mt-2 md:mt-4">
+            <TrendingUp className="w-4 h-4 md:w-6 md:h-6 text-white" />
           </div>
         </div>
 
         {/* Modules Widget */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">MODULES</h2>
-          <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl p-3 md:p-4 shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col">
+          <h2 className="text-[10px] md:text-sm font-semibold text-gray-900 dark:text-white mb-2 md:mb-3">MODULES</h2>
+          <div className="grid grid-cols-2 gap-2 md:gap-3">
             {modules.map(module => (
               <Link
                 key={module.id}
                 to={module.path}
-                className="group flex flex-col items-center justify-center hover:opacity-80 transition-opacity py-2"
+                className="group flex flex-col items-center justify-center hover:opacity-80 transition-opacity py-1 md:py-2 min-h-[60px] md:min-h-0"
               >
-                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${
+                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg bg-gradient-to-br ${
                   module.id === 'budget' 
                     ? 'from-purple-500 to-indigo-600' 
                     : 'from-blue-500 to-cyan-600'
                 } flex items-center justify-center shadow-md mb-1 group-hover:scale-110 transition-transform duration-300`}>
                   {module.id === 'budget' ? (
-                    <Wallet className="w-5 h-5 text-white" />
+                    <Wallet className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   ) : (
-                    <CheckSquare className="w-5 h-5 text-white" />
+                    <CheckSquare className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   )}
                 </div>
-                <span className="text-xs font-medium text-gray-900 dark:text-white text-center">
+                <span className="text-[10px] md:text-xs font-medium text-gray-900 dark:text-white text-center leading-tight">
                   {module.name}
                 </span>
               </Link>
@@ -105,63 +105,63 @@ export default function Home() {
       </div>
 
       {/* Quick Consult Access */}
-      <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 shadow-lg text-white">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-            <HelpCircle className="w-6 h-6" />
+      <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg text-white">
+        <div className="flex items-center space-x-2 md:space-x-3 mb-3 md:mb-4">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-lg md:rounded-xl flex items-center justify-center backdrop-blur-sm flex-shrink-0">
+            <HelpCircle className="w-5 h-5 md:w-6 md:h-6" />
           </div>
-          <div>
-            <h3 className="text-lg font-bold">Financial Impact Analysis</h3>
-            <p className="text-purple-100 text-sm">Analyze expenses and debts before committing</p>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base md:text-lg font-bold leading-tight">Financial Impact Analysis</h3>
+            <p className="text-purple-100 text-xs md:text-sm leading-tight mt-0.5">Analyze expenses and debts before committing</p>
           </div>
         </div>
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+        <div className="bg-white/10 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-4">
           <ConsultForm compact={true} />
         </div>
       </div>
 
       {/* Quick Stats - Interactive Cards */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">QUICK STATS</h2>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md hover:shadow-xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform hover:scale-105 cursor-pointer group">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <TrendingUp className="w-5 h-5 text-white" />
+        <h2 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-3 md:mb-4">QUICK STATS</h2>
+        <div className="grid grid-cols-3 gap-2 md:gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg md:rounded-xl p-3 md:p-4 shadow-md hover:shadow-xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform hover:scale-105 cursor-pointer group">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform">
+              <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-white" />
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">${totalBalance.toLocaleString()}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">Balance</p>
+            <p className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mb-0.5 md:mb-1 leading-tight">${totalBalance.toLocaleString()}</p>
+            <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400">Balance</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md hover:shadow-xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform hover:scale-105 cursor-pointer group">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <BarChart3 className="w-5 h-5 text-white" />
+          <div className="bg-white dark:bg-gray-800 rounded-lg md:rounded-xl p-3 md:p-4 shadow-md hover:shadow-xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform hover:scale-105 cursor-pointer group">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform">
+              <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-white" />
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{activeTasks}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">Tasks</p>
+            <p className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mb-0.5 md:mb-1 leading-tight">{activeTasks}</p>
+            <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400">Tasks</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md hover:shadow-xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform hover:scale-105 cursor-pointer group">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <CheckSquare className="w-5 h-5 text-white" />
+          <div className="bg-white dark:bg-gray-800 rounded-lg md:rounded-xl p-3 md:p-4 shadow-md hover:shadow-xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform hover:scale-105 cursor-pointer group">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform">
+              <CheckSquare className="w-4 h-4 md:w-5 md:h-5 text-white" />
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{savingsGoals}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">Goals</p>
+            <p className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mb-0.5 md:mb-1 leading-tight">{savingsGoals}</p>
+            <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400">Goals</p>
           </div>
         </div>
       </div>
 
       {/* Recent Activity */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">RECENT ACTIVITY</h2>
+        <div className="flex items-center justify-between mb-3 md:mb-4">
+          <h2 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">RECENT ACTIVITY</h2>
           <Link 
             to="/budget" 
-            className="text-purple-600 dark:text-purple-400 text-sm font-medium hover:opacity-80 transition-opacity flex items-center space-x-1"
+            className="text-purple-600 dark:text-purple-400 text-xs md:text-sm font-medium hover:opacity-80 transition-opacity flex items-center space-x-1 min-h-[44px] min-w-[44px] items-center justify-center"
           >
-            <span>See all</span>
+            <span className="hidden sm:inline">See all</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700">
-          <p className="text-sm text-gray-600 dark:text-gray-400 text-center py-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg md:rounded-xl p-3 md:p-4 shadow-md border border-gray-200 dark:border-gray-700">
+          <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 text-center py-3 md:py-4">
             No recent activity
           </p>
         </div>

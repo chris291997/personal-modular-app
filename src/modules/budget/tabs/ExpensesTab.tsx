@@ -173,23 +173,23 @@ export default function ExpensesTab() {
   }
 
   return (
-    <div className="space-y-6 pb-20 md:pb-8">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
-            <Wallet className="w-6 h-6 text-white" />
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+        <div className="flex items-center space-x-2 md:space-x-3">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg md:rounded-xl flex items-center justify-center">
+            <Wallet className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Expense Management</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Track your expenses and categories</p>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Expense Management</h2>
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Track your expenses and categories</p>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 w-full sm:w-auto">
           <button
             onClick={() => setShowCategoryForm(!showCategoryForm)}
-            className="flex items-center space-x-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
+            className="flex items-center space-x-2 px-3 md:px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg md:rounded-xl text-sm md:text-base font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-all flex-1 sm:flex-initial justify-center"
           >
-            <Tag className="w-5 h-5" />
+            <Tag className="w-4 h-4 md:w-5 md:h-5" />
             <span>{showCategoryForm ? 'Cancel' : 'Category'}</span>
           </button>
           <button
@@ -203,7 +203,7 @@ export default function ExpensesTab() {
       </div>
 
       {showCategoryForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
           <form onSubmit={handleAddCategory} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -238,7 +238,7 @@ export default function ExpensesTab() {
       )}
 
       {showForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>

@@ -112,28 +112,28 @@ export default function SavingsTab() {
   }
 
   return (
-    <div className="space-y-6 pb-20 md:pb-8">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
-            <Target className="w-6 h-6 text-white" />
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+        <div className="flex items-center space-x-2 md:space-x-3">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg md:rounded-xl flex items-center justify-center">
+            <Target className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Savings Goals</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Set and track your savings goals</p>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Savings Goals</h2>
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Set and track your savings goals</p>
           </div>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+          className="flex items-center space-x-2 px-3 md:px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg md:rounded-xl text-sm md:text-base font-medium hover:shadow-lg transition-all w-full sm:w-auto justify-center"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-4 h-4 md:w-5 md:h-5" />
           <span>{showForm ? 'Cancel' : 'Add Goal'}</span>
         </button>
       </div>
 
       {showForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
