@@ -16,12 +16,21 @@ import { Income, Expense, Debt, SavingsGoal, ExpenseCategory, ConsultInput, Cons
 // Income
 export const addIncome = async (income: Omit<Income, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
   const now = new Date();
-  const docRef = await addDoc(collection(db, 'incomes'), {
-    ...income,
+  const incomeData: any = {
+    amount: income.amount,
+    source: income.source,
+    frequency: income.frequency,
     date: Timestamp.fromDate(income.date),
     createdAt: Timestamp.fromDate(now),
     updatedAt: Timestamp.fromDate(now),
-  });
+  };
+  
+  // Only include notes if it's not undefined
+  if (income.notes !== undefined && income.notes !== '') {
+    incomeData.notes = income.notes;
+  }
+  
+  const docRef = await addDoc(collection(db, 'incomes'), incomeData);
   return docRef.id;
 };
 
@@ -50,13 +59,15 @@ export const getIncomes = async (startDate?: Date, endDate?: Date): Promise<Inco
 export const updateIncome = async (id: string, updates: Partial<Income>): Promise<void> => {
   const incomeRef = doc(db, 'incomes', id);
   const updateData: any = {
-    ...updates,
     updatedAt: Timestamp.fromDate(new Date()),
   };
   
-  if (updates.date) {
-    updateData.date = Timestamp.fromDate(updates.date);
-  }
+  // Only include defined fields
+  if (updates.amount !== undefined) updateData.amount = updates.amount;
+  if (updates.source !== undefined) updateData.source = updates.source;
+  if (updates.frequency !== undefined) updateData.frequency = updates.frequency;
+  if (updates.date !== undefined) updateData.date = Timestamp.fromDate(updates.date);
+  if (updates.notes !== undefined && updates.notes !== '') updateData.notes = updates.notes;
   
   await updateDoc(incomeRef, updateData);
 };
@@ -68,13 +79,27 @@ export const deleteIncome = async (id: string): Promise<void> => {
 // Expenses
 export const addExpense = async (expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
   const now = new Date();
-  const docRef = await addDoc(collection(db, 'expenses'), {
-    ...expense,
+  const expenseData: any = {
+    amount: expense.amount,
+    categoryId: expense.categoryId,
+    description: expense.description,
     date: Timestamp.fromDate(expense.date),
-    nextDueDate: expense.nextDueDate ? Timestamp.fromDate(expense.nextDueDate) : null,
+    isRecurring: expense.isRecurring,
     createdAt: Timestamp.fromDate(now),
     updatedAt: Timestamp.fromDate(now),
-  });
+  };
+  
+  if (expense.recurringFrequency !== undefined) {
+    expenseData.recurringFrequency = expense.recurringFrequency;
+  }
+  if (expense.nextDueDate !== undefined) {
+    expenseData.nextDueDate = Timestamp.fromDate(expense.nextDueDate);
+  }
+  if (expense.notes !== undefined && expense.notes !== '') {
+    expenseData.notes = expense.notes;
+  }
+  
+  const docRef = await addDoc(collection(db, 'expenses'), expenseData);
   return docRef.id;
 };
 
@@ -104,16 +129,18 @@ export const getExpenses = async (startDate?: Date, endDate?: Date): Promise<Exp
 export const updateExpense = async (id: string, updates: Partial<Expense>): Promise<void> => {
   const expenseRef = doc(db, 'expenses', id);
   const updateData: any = {
-    ...updates,
     updatedAt: Timestamp.fromDate(new Date()),
   };
   
-  if (updates.date) {
-    updateData.date = Timestamp.fromDate(updates.date);
-  }
-  if (updates.nextDueDate) {
-    updateData.nextDueDate = Timestamp.fromDate(updates.nextDueDate);
-  }
+  // Only include defined fields
+  if (updates.amount !== undefined) updateData.amount = updates.amount;
+  if (updates.categoryId !== undefined) updateData.categoryId = updates.categoryId;
+  if (updates.description !== undefined) updateData.description = updates.description;
+  if (updates.date !== undefined) updateData.date = Timestamp.fromDate(updates.date);
+  if (updates.isRecurring !== undefined) updateData.isRecurring = updates.isRecurring;
+  if (updates.recurringFrequency !== undefined) updateData.recurringFrequency = updates.recurringFrequency;
+  if (updates.nextDueDate !== undefined) updateData.nextDueDate = Timestamp.fromDate(updates.nextDueDate);
+  if (updates.notes !== undefined && updates.notes !== '') updateData.notes = updates.notes;
   
   await updateDoc(expenseRef, updateData);
 };
@@ -139,11 +166,25 @@ export const addCategory = async (category: Omit<ExpenseCategory, 'id'>): Promis
 // Debts
 export const addDebt = async (debt: Omit<Debt, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
   const now = new Date();
-  const docRef = await addDoc(collection(db, 'debts'), {
-    ...debt,
+  const debtData: any = {
+    type: debt.type,
+    creditor: debt.creditor,
+    totalAmount: debt.totalAmount,
+    remainingAmount: debt.remainingAmount,
+    minimumPayment: debt.minimumPayment,
+    dueDate: debt.dueDate,
     createdAt: Timestamp.fromDate(now),
     updatedAt: Timestamp.fromDate(now),
-  });
+  };
+  
+  if (debt.interestRate !== undefined) {
+    debtData.interestRate = debt.interestRate;
+  }
+  if (debt.notes !== undefined && debt.notes !== '') {
+    debtData.notes = debt.notes;
+  }
+  
+  const docRef = await addDoc(collection(db, 'debts'), debtData);
   return docRef.id;
 };
 
@@ -159,10 +200,21 @@ export const getDebts = async (): Promise<Debt[]> => {
 
 export const updateDebt = async (id: string, updates: Partial<Debt>): Promise<void> => {
   const debtRef = doc(db, 'debts', id);
-  await updateDoc(debtRef, {
-    ...updates,
+  const updateData: any = {
     updatedAt: Timestamp.fromDate(new Date()),
-  });
+  };
+  
+  // Only include defined fields
+  if (updates.type !== undefined) updateData.type = updates.type;
+  if (updates.creditor !== undefined) updateData.creditor = updates.creditor;
+  if (updates.totalAmount !== undefined) updateData.totalAmount = updates.totalAmount;
+  if (updates.remainingAmount !== undefined) updateData.remainingAmount = updates.remainingAmount;
+  if (updates.minimumPayment !== undefined) updateData.minimumPayment = updates.minimumPayment;
+  if (updates.dueDate !== undefined) updateData.dueDate = updates.dueDate;
+  if (updates.interestRate !== undefined) updateData.interestRate = updates.interestRate;
+  if (updates.notes !== undefined && updates.notes !== '') updateData.notes = updates.notes;
+  
+  await updateDoc(debtRef, updateData);
 };
 
 export const deleteDebt = async (id: string): Promise<void> => {
@@ -172,12 +224,22 @@ export const deleteDebt = async (id: string): Promise<void> => {
 // Savings Goals
 export const addSavingsGoal = async (goal: Omit<SavingsGoal, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
   const now = new Date();
-  const docRef = await addDoc(collection(db, 'savingsGoals'), {
-    ...goal,
-    targetDate: goal.targetDate ? Timestamp.fromDate(goal.targetDate) : null,
+  const goalData: any = {
+    name: goal.name,
+    targetAmount: goal.targetAmount,
+    currentAmount: goal.currentAmount,
     createdAt: Timestamp.fromDate(now),
     updatedAt: Timestamp.fromDate(now),
-  });
+  };
+  
+  if (goal.targetDate !== undefined) {
+    goalData.targetDate = goal.targetDate ? Timestamp.fromDate(goal.targetDate) : null;
+  }
+  if (goal.notes !== undefined && goal.notes !== '') {
+    goalData.notes = goal.notes;
+  }
+  
+  const docRef = await addDoc(collection(db, 'savingsGoals'), goalData);
   return docRef.id;
 };
 
@@ -195,13 +257,17 @@ export const getSavingsGoals = async (): Promise<SavingsGoal[]> => {
 export const updateSavingsGoal = async (id: string, updates: Partial<SavingsGoal>): Promise<void> => {
   const goalRef = doc(db, 'savingsGoals', id);
   const updateData: any = {
-    ...updates,
     updatedAt: Timestamp.fromDate(new Date()),
   };
   
-  if (updates.targetDate) {
-    updateData.targetDate = Timestamp.fromDate(updates.targetDate);
+  // Only include defined fields
+  if (updates.name !== undefined) updateData.name = updates.name;
+  if (updates.targetAmount !== undefined) updateData.targetAmount = updates.targetAmount;
+  if (updates.currentAmount !== undefined) updateData.currentAmount = updates.currentAmount;
+  if (updates.targetDate !== undefined) {
+    updateData.targetDate = updates.targetDate ? Timestamp.fromDate(updates.targetDate) : null;
   }
+  if (updates.notes !== undefined && updates.notes !== '') updateData.notes = updates.notes;
   
   await updateDoc(goalRef, updateData);
 };

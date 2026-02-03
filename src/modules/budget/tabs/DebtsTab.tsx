@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getDebts, addDebt, updateDebt, deleteDebt } from '../../../services/budgetService';
 import { Debt } from '../../../types';
-import './DebtsTab.css';
+import { Plus, Edit2, Trash2, CreditCard } from 'lucide-react';
 
 export default function DebtsTab() {
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -63,9 +63,10 @@ export default function DebtsTab() {
       }
       resetForm();
       loadDebts();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving debt:', error);
-      alert('Failed to save debt');
+      const errorMessage = error?.message || 'Unknown error';
+      alert(`Failed to save debt: ${errorMessage}`);
     }
   };
 
@@ -111,95 +112,131 @@ export default function DebtsTab() {
   };
 
   if (loading) {
-    return <div className="loading">Loading debts...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="debts-tab">
-      <div className="tab-header">
-        <h2>Debt Management</h2>
-        <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Cancel' : '+ Add Debt'}
+    <div className="space-y-6 pb-20 md:pb-8">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
+            <CreditCard className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Debt Management</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Track your debts and payments</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+        >
+          <Plus className="w-5 h-5" />
+          <span>{showForm ? 'Cancel' : 'Add Debt'}</span>
         </button>
       </div>
 
       {showForm && (
-        <form className="debt-form" onSubmit={handleSubmit}>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Debt Type *</label>
-              <select
-                required
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as Debt['type'] })}
-              >
-                <option value="credit_card">Credit Card</option>
-                <option value="loan">Loan</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Debt Type *
+                </label>
+                <select
+                  required
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value as Debt['type'] })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="credit_card">Credit Card</option>
+                  <option value="loan">Loan</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
 
-            <div className="form-group">
-              <label>Creditor *</label>
-              <input
-                type="text"
-                required
-                value={formData.creditor}
-                onChange={(e) => setFormData({ ...formData, creditor: e.target.value })}
-                placeholder="e.g., Bank Name, Credit Card Company"
-              />
-            </div>
-          </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Creditor *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.creditor}
+                  onChange={(e) => setFormData({ ...formData, creditor: e.target.value })}
+                  placeholder="e.g., Bank Name, Credit Card Company"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>Total Amount *</label>
-              <input
-                type="number"
-                step="0.01"
-                required
-                value={formData.totalAmount}
-                onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })}
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Total Amount *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={formData.totalAmount}
+                  onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="0.00"
+                />
+              </div>
 
-            <div className="form-group">
-              <label>Remaining Amount *</label>
-              <input
-                type="number"
-                step="0.01"
-                required
-                value={formData.remainingAmount}
-                onChange={(e) => setFormData({ ...formData, remainingAmount: e.target.value })}
-              />
-            </div>
-          </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Remaining Amount *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={formData.remainingAmount}
+                  onChange={(e) => setFormData({ ...formData, remainingAmount: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="0.00"
+                />
+              </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>Minimum Payment *</label>
-              <input
-                type="number"
-                step="0.01"
-                required
-                value={formData.minimumPayment}
-                onChange={(e) => setFormData({ ...formData, minimumPayment: e.target.value })}
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Minimum Payment *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={formData.minimumPayment}
+                  onChange={(e) => setFormData({ ...formData, minimumPayment: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="0.00"
+                />
+              </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label>Interest Rate (%)</label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Interest Rate (%)
+                </label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.interestRate}
                   onChange={(e) => setFormData({ ...formData, interestRate: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="0.00"
                 />
               </div>
 
-              <div className="form-group">
-                <label>Due Date (Day of Month) *</label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Due Date (Day of Month) *
+                </label>
                 <input
                   type="number"
                   min="1"
@@ -207,77 +244,105 @@ export default function DebtsTab() {
                   required
                   value={formData.dueDate}
                   onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
             </div>
-          </div>
 
-          <div className="form-group">
-            <label>Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={3}
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Notes
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Optional notes..."
+              />
+            </div>
 
-          <div className="form-actions">
-            <button type="submit" className="btn-primary">
-              {editingDebt ? 'Update' : 'Add'} Debt
-            </button>
-            <button type="button" className="btn-secondary" onClick={resetForm}>
-              Cancel
-            </button>
-          </div>
-        </form>
+            <div className="flex space-x-3">
+              <button
+                type="submit"
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
+              >
+                {editingDebt ? 'Update' : 'Add'} Debt
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
-      <div className="debt-list">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         {debts.length === 0 ? (
-          <p className="empty-state">No debts recorded. Add your first debt!</p>
+          <div className="p-12 text-center">
+            <CreditCard className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">No debts recorded. Add your first debt!</p>
+          </div>
         ) : (
-          <div className="debts-grid">
-            {debts.map(debt => (
-              <div key={debt.id} className="debt-card">
-                <div className="debt-header">
-                  <h3>{debt.creditor}</h3>
-                  <span className="debt-type">{debt.type.replace('_', ' ')}</span>
-                </div>
-                <div className="debt-details">
-                  <div className="debt-detail-item">
-                    <span className="label">Total:</span>
-                    <span className="value">${debt.totalAmount.toFixed(2)}</span>
-                  </div>
-                  <div className="debt-detail-item">
-                    <span className="label">Remaining:</span>
-                    <span className="value warning">${debt.remainingAmount.toFixed(2)}</span>
-                  </div>
-                  <div className="debt-detail-item">
-                    <span className="label">Min Payment:</span>
-                    <span className="value">${debt.minimumPayment.toFixed(2)}</span>
-                  </div>
-                  {debt.interestRate && (
-                    <div className="debt-detail-item">
-                      <span className="label">Interest:</span>
-                      <span className="value">{debt.interestRate.toFixed(2)}%</span>
-                    </div>
-                  )}
-                  <div className="debt-detail-item">
-                    <span className="label">Due Date:</span>
-                    <span className="value">Day {debt.dueDate.toString()}</span>
-                  </div>
-                </div>
-                {debt.notes && (
-                  <div className="debt-notes">
-                    <strong>Notes:</strong> {debt.notes}
-                  </div>
-                )}
-                <div className="debt-actions">
-                  <button className="btn-edit" onClick={() => handleEdit(debt)}>Edit</button>
-                  <button className="btn-delete" onClick={() => handleDelete(debt.id)}>Delete</button>
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Creditor</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Remaining</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Min Payment</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Due Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {debts.map(debt => (
+                  <tr key={debt.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                      {debt.creditor}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 capitalize">
+                      {debt.type.replace('_', ' ')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      ${debt.totalAmount.toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-red-600 dark:text-red-400">
+                      ${debt.remainingAmount.toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      ${debt.minimumPayment.toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                      Day {debt.dueDate}
+                      {debt.interestRate && ` (${debt.interestRate.toFixed(2)}%)`}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleEdit(debt)}
+                          className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(debt.id)}
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

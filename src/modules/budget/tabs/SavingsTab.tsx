@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { getSavingsGoals, addSavingsGoal, updateSavingsGoal, deleteSavingsGoal } from '../../../services/budgetService';
 import { SavingsGoal } from '../../../types';
 import { format } from 'date-fns';
-import './SavingsTab.css';
+import { Plus, Edit2, Trash2, Target } from 'lucide-react';
 
 export default function SavingsTab() {
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
@@ -57,9 +57,10 @@ export default function SavingsTab() {
       }
       resetForm();
       loadGoals();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving savings goal:', error);
-      alert('Failed to save savings goal');
+      const errorMessage = error?.message || 'Unknown error';
+      alert(`Failed to save savings goal: ${errorMessage}`);
     }
   };
 
@@ -103,133 +104,195 @@ export default function SavingsTab() {
   };
 
   if (loading) {
-    return <div className="loading">Loading savings goals...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="savings-tab">
-      <div className="tab-header">
-        <h2>Savings Goals</h2>
-        <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Cancel' : '+ Add Goal'}
+    <div className="space-y-6 pb-20 md:pb-8">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
+            <Target className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Savings Goals</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Set and track your savings goals</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+        >
+          <Plus className="w-5 h-5" />
+          <span>{showForm ? 'Cancel' : 'Add Goal'}</span>
         </button>
       </div>
 
       {showForm && (
-        <form className="savings-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Goal Name *</label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="e.g., Emergency Fund, Vacation, etc."
-            />
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Target Amount *</label>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Goal Name *
+              </label>
               <input
-                type="number"
-                step="0.01"
+                type="text"
                 required
-                value={formData.targetAmount}
-                onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Emergency Fund, Vacation, etc."
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
-            <div className="form-group">
-              <label>Current Amount *</label>
-              <input
-                type="number"
-                step="0.01"
-                required
-                value={formData.currentAmount}
-                onChange={(e) => setFormData({ ...formData, currentAmount: e.target.value })}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Target Amount *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={formData.targetAmount}
+                  onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Current Amount *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={formData.currentAmount}
+                  onChange={(e) => setFormData({ ...formData, currentAmount: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Target Date
+                </label>
+                <input
+                  type="date"
+                  value={formData.targetDate}
+                  onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Notes
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Optional notes..."
               />
             </div>
-          </div>
 
-          <div className="form-group">
-            <label>Target Date</label>
-            <input
-              type="date"
-              value={formData.targetDate}
-              onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={3}
-            />
-          </div>
-
-          <div className="form-actions">
-            <button type="submit" className="btn-primary">
-              {editingGoal ? 'Update' : 'Add'} Goal
-            </button>
-            <button type="button" className="btn-secondary" onClick={resetForm}>
-              Cancel
-            </button>
-          </div>
-        </form>
+            <div className="flex space-x-3">
+              <button
+                type="submit"
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
+              >
+                {editingGoal ? 'Update' : 'Add'} Goal
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
-      <div className="goals-list">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         {goals.length === 0 ? (
-          <p className="empty-state">No savings goals yet. Create your first goal!</p>
+          <div className="p-12 text-center">
+            <Target className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">No savings goals yet. Create your first goal!</p>
+          </div>
         ) : (
-          <div className="goals-grid">
-            {goals.map(goal => {
-              const progress = calculateProgress(goal);
-              const remaining = goal.targetAmount - goal.currentAmount;
-              return (
-                <div key={goal.id} className="goal-card">
-                  <div className="goal-header">
-                    <h3>{goal.name}</h3>
-                    {goal.targetDate && (
-                      <span className="goal-date">
-                        Target: {format(goal.targetDate, 'MMM dd, yyyy')}
-                      </span>
-                    )}
-                  </div>
-                  <div className="goal-amounts">
-                    <div className="amount-current">
-                      <span className="label">Current</span>
-                      <span className="value">${goal.currentAmount.toFixed(2)}</span>
-                    </div>
-                    <div className="amount-target">
-                      <span className="label">Target</span>
-                      <span className="value">${goal.targetAmount.toFixed(2)}</span>
-                    </div>
-                    <div className="amount-remaining">
-                      <span className="label">Remaining</span>
-                      <span className="value">${remaining.toFixed(2)}</span>
-                    </div>
-                  </div>
-                  <div className="progress-bar-container">
-                    <div className="progress-bar" style={{ width: `${progress}%` }}>
-                      <span className="progress-text">{progress.toFixed(1)}%</span>
-                    </div>
-                  </div>
-                  {goal.notes && (
-                    <div className="goal-notes">
-                      <strong>Notes:</strong> {goal.notes}
-                    </div>
-                  )}
-                  <div className="goal-actions">
-                    <button className="btn-edit" onClick={() => handleEdit(goal)}>Edit</button>
-                    <button className="btn-delete" onClick={() => handleDelete(goal.id)}>Delete</button>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Goal Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Current</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Target</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Progress</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Target Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {goals.map(goal => {
+                  const progress = calculateProgress(goal);
+                  return (
+                    <tr key={goal.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                        {goal.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        ${goal.currentAmount.toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        ${goal.targetAmount.toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div
+                              className="bg-gradient-to-r from-purple-500 to-indigo-600 h-2 rounded-full"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{progress.toFixed(1)}%</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                        {goal.targetDate ? format(goal.targetDate, 'MMM dd, yyyy') : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleEdit(goal)}
+                            className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(goal.id)}
+                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

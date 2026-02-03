@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react';
 import { getIncomes, getExpenses, getDebts, getSavingsGoals } from '../../../services/budgetService';
 import { Income, Expense, Debt, SavingsGoal } from '../../../types';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
-import './DashboardTab.css';
+import { 
+  TrendingUp, TrendingDown, Wallet, CreditCard, Target, 
+  DollarSign, ArrowUpRight, ArrowDownRight, HelpCircle
+} from 'lucide-react';
+import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { BarChart3 } from 'lucide-react';
+import ConsultForm from '../../../components/ConsultForm';
 
 export default function DashboardTab() {
   const [incomes, setIncomes] = useState<Income[]>([]);
@@ -73,7 +79,11 @@ export default function DashboardTab() {
   };
 
   if (loading) {
-    return <div className="loading">Loading dashboard...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
   }
 
   const monthlyIncome = calculateMonthlyIncome();
@@ -83,96 +93,237 @@ export default function DashboardTab() {
   const totalDebt = debts.reduce((sum, debt) => sum + debt.remainingAmount, 0);
   const totalSavings = savingsGoals.reduce((sum, goal) => sum + goal.currentAmount, 0);
 
+  // Chart data
+  const expenseByCategory = expenses.reduce((acc, expense) => {
+    const category = expense.categoryId || 'Other';
+    acc[category] = (acc[category] || 0) + expense.amount;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const pieData = Object.entries(expenseByCategory).map(([name, value]) => ({
+    name,
+    value: Number(value.toFixed(2)),
+  }));
+
+  const COLORS = ['#8b5cf6', '#6366f1', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
+
+  const monthlyData = [
+    { name: 'Income', amount: monthlyIncome, color: '#10b981' },
+    { name: 'Expenses', amount: monthlyExpenses, color: '#ef4444' },
+    { name: 'Debts', amount: monthlyDebtPayments, color: '#f59e0b' },
+  ];
+
   return (
-    <div className="dashboard-tab">
-      <h2>Financial Overview - {format(new Date(), 'MMMM yyyy')}</h2>
-      
-      <div className="stats-grid">
-        <div className="stat-card income">
-          <div className="stat-icon">💰</div>
-          <div className="stat-content">
-            <div className="stat-label">Monthly Income</div>
-            <div className="stat-value">${monthlyIncome.toFixed(2)}</div>
-          </div>
-        </div>
-
-        <div className="stat-card expense">
-          <div className="stat-icon">💸</div>
-          <div className="stat-content">
-            <div className="stat-label">Monthly Expenses</div>
-            <div className="stat-value">${monthlyExpenses.toFixed(2)}</div>
-          </div>
-        </div>
-
-        <div className="stat-card debt">
-          <div className="stat-icon">💳</div>
-          <div className="stat-content">
-            <div className="stat-label">Debt Payments</div>
-            <div className="stat-value">${monthlyDebtPayments.toFixed(2)}</div>
-          </div>
-        </div>
-
-        <div className={`stat-card ${availableBudget >= 0 ? 'available' : 'negative'}`}>
-          <div className="stat-icon">{availableBudget >= 0 ? '✅' : '⚠️'}</div>
-          <div className="stat-content">
-            <div className="stat-label">Available Budget</div>
-            <div className="stat-value">${availableBudget.toFixed(2)}</div>
-          </div>
-        </div>
-
-        <div className="stat-card total-debt">
-          <div className="stat-icon">📊</div>
-          <div className="stat-content">
-            <div className="stat-label">Total Debt</div>
-            <div className="stat-value">${totalDebt.toFixed(2)}</div>
-          </div>
-        </div>
-
-        <div className="stat-card savings">
-          <div className="stat-icon">🎯</div>
-          <div className="stat-content">
-            <div className="stat-label">Total Savings</div>
-            <div className="stat-value">${totalSavings.toFixed(2)}</div>
-          </div>
+    <div className="space-y-6 pb-20 md:pb-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Financial Overview
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            {format(new Date(), 'MMMM yyyy')}
+          </p>
         </div>
       </div>
 
-      <div className="dashboard-sections">
-        <div className="dashboard-section">
-          <h3>Recent Expenses</h3>
-          {expenses.slice(0, 5).length > 0 ? (
-            <ul className="expense-list">
-              {expenses.slice(0, 5).map(expense => (
-                <li key={expense.id}>
-                  <span className="expense-amount">${expense.amount.toFixed(2)}</span>
-                  <span className="expense-desc">{expense.description}</span>
-                  <span className="expense-date">{format(expense.date, 'MMM dd')}</span>
-                </li>
-              ))}
-            </ul>
+      {/* Main Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-xl">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+              <TrendingUp className="w-6 h-6" />
+            </div>
+            <ArrowUpRight className="w-5 h-5 opacity-80" />
+          </div>
+          <p className="text-purple-100 text-sm mb-1">Monthly Income</p>
+          <p className="text-3xl font-bold">${monthlyIncome.toFixed(2)}</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl p-6 text-white shadow-xl">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+              <TrendingDown className="w-6 h-6" />
+            </div>
+            <ArrowDownRight className="w-5 h-5 opacity-80" />
+          </div>
+          <p className="text-red-100 text-sm mb-1">Monthly Expenses</p>
+          <p className="text-3xl font-bold">${monthlyExpenses.toFixed(2)}</p>
+        </div>
+
+        <div className={`rounded-2xl p-6 text-white shadow-xl ${
+          availableBudget >= 0 
+            ? 'bg-gradient-to-br from-green-500 to-emerald-600' 
+            : 'bg-gradient-to-br from-orange-500 to-red-600'
+        }`}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+              <Wallet className="w-6 h-6" />
+            </div>
+            {availableBudget >= 0 ? (
+              <ArrowUpRight className="w-5 h-5 opacity-80" />
+            ) : (
+              <ArrowDownRight className="w-5 h-5 opacity-80" />
+            )}
+          </div>
+          <p className="text-white/80 text-sm mb-1">Available Budget</p>
+          <p className="text-3xl font-bold">${availableBudget.toFixed(2)}</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl p-6 text-white shadow-xl">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+              <Target className="w-6 h-6" />
+            </div>
+            <ArrowUpRight className="w-5 h-5 opacity-80" />
+          </div>
+          <p className="text-blue-100 text-sm mb-1">Total Savings</p>
+          <p className="text-3xl font-bold">${totalSavings.toFixed(2)}</p>
+        </div>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Expense Distribution Pie Chart */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-2 mb-6">
+            <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Expense Distribution</h3>
+          </div>
+          {pieData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <RechartsPieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {pieData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+              </RechartsPieChart>
+            </ResponsiveContainer>
           ) : (
-            <p className="empty-state">No expenses this month</p>
+            <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
+              No expense data available
+            </div>
           )}
         </div>
 
-        <div className="dashboard-section">
-          <h3>Active Debts</h3>
-          {debts.length > 0 ? (
-            <ul className="debt-list">
-              {debts.map(debt => (
-                <li key={debt.id}>
-                  <div className="debt-info">
-                    <span className="debt-creditor">{debt.creditor}</span>
-                    <span className="debt-amount">${debt.remainingAmount.toFixed(2)}</span>
+        {/* Monthly Overview Bar Chart */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-2 mb-6">
+            <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Monthly Overview</h3>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={monthlyData}>
+              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+              <Bar dataKey="amount" radius={[8, 8, 0, 0]}>
+                {monthlyData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Quick Consult Card */}
+      <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 shadow-xl text-white">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+            <HelpCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold">Financial Impact Analysis</h3>
+            <p className="text-purple-100 text-sm">Analyze expenses and debts before committing</p>
+          </div>
+        </div>
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+          <ConsultForm compact={true} />
+        </div>
+      </div>
+
+      {/* Additional Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center">
+              <CreditCard className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total Debt</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">${totalDebt.toFixed(2)}</p>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Monthly Payments: ${monthlyDebtPayments.toFixed(2)}</p>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Debt Payments</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">${monthlyDebtPayments.toFixed(2)}</p>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Active Debts: {debts.length}</p>
+        </div>
+      </div>
+
+      {/* Recent Transactions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Recent Expenses</h3>
+          {expenses.slice(0, 5).length > 0 ? (
+            <div className="space-y-3">
+              {expenses.slice(0, 5).map(expense => (
+                <div key={expense.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900 dark:text-white">{expense.description}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{format(expense.date, 'MMM dd, yyyy')}</p>
                   </div>
-                  <div className="debt-details">
-                    Min: ${debt.minimumPayment.toFixed(2)} | Due: Day {debt.dueDate.toString()}
-                  </div>
-                </li>
+                  <p className="text-lg font-bold text-red-600 dark:text-red-400">-${expense.amount.toFixed(2)}</p>
+                </div>
               ))}
-            </ul>
+            </div>
           ) : (
-            <p className="empty-state">No active debts</p>
+            <p className="text-center text-gray-500 dark:text-gray-400 py-8">No expenses this month</p>
+          )}
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Active Debts</h3>
+          {debts.length > 0 ? (
+            <div className="space-y-3">
+              {debts.map(debt => (
+                <div key={debt.id} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-medium text-gray-900 dark:text-white">{debt.creditor}</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">${debt.remainingAmount.toFixed(2)}</p>
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                    <span>Min: ${debt.minimumPayment.toFixed(2)}</span>
+                    <span>Due: Day {debt.dueDate}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500 dark:text-gray-400 py-8">No active debts</p>
           )}
         </div>
       </div>

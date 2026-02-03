@@ -5,7 +5,6 @@ import Layout from './components/Layout';
 import Home from './pages/Home';
 import InstallPWA from './components/InstallPWA';
 import { initializeNotifications, setupNotificationListener } from './services/notificationService';
-import './App.css';
 
 function App() {
   const [modules] = useState(getEnabledModules());

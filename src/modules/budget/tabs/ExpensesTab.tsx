@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { getExpenses, addExpense, updateExpense, deleteExpense, getCategories, addCategory } from '../../../services/budgetService';
 import { Expense, ExpenseCategory } from '../../../types';
 import { format } from 'date-fns';
-import './ExpensesTab.css';
+import { Plus, Edit2, Trash2, Wallet, Tag } from 'lucide-react';
 
 const COMMON_CATEGORIES = [
   'Food & Dining',
@@ -53,7 +53,6 @@ export default function ExpensesTab() {
       ]);
       setExpenses(expensesData);
       
-      // Initialize categories if empty
       if (categoriesData.length === 0) {
         const commonCats: ExpenseCategory[] = COMMON_CATEGORIES.map(name => ({
           id: name,
@@ -96,9 +95,10 @@ export default function ExpensesTab() {
       }
       resetForm();
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving expense:', error);
-      alert('Failed to save expense');
+      const errorMessage = error?.message || 'Unknown error';
+      alert(`Failed to save expense: ${errorMessage}`);
     }
   };
 
@@ -112,9 +112,10 @@ export default function ExpensesTab() {
       setCategoryFormData({ name: '' });
       setShowCategoryForm(false);
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding category:', error);
-      alert('Failed to add category');
+      const errorMessage = error?.message || 'Unknown error';
+      alert(`Failed to add category: ${errorMessage}`);
     }
   };
 
@@ -164,192 +165,283 @@ export default function ExpensesTab() {
   };
 
   if (loading) {
-    return <div className="loading">Loading expenses...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="expenses-tab">
-      <div className="tab-header">
-        <h2>Expense Management</h2>
-        <div className="header-actions">
-          <button className="btn-secondary" onClick={() => setShowCategoryForm(!showCategoryForm)}>
-            {showCategoryForm ? 'Cancel' : '+ Category'}
+    <div className="space-y-6 pb-20 md:pb-8">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
+            <Wallet className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Expense Management</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Track your expenses and categories</p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowCategoryForm(!showCategoryForm)}
+            className="flex items-center space-x-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
+          >
+            <Tag className="w-5 h-5" />
+            <span>{showCategoryForm ? 'Cancel' : 'Category'}</span>
           </button>
-          <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
-            {showForm ? 'Cancel' : '+ Add Expense'}
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+          >
+            <Plus className="w-5 h-5" />
+            <span>{showForm ? 'Cancel' : 'Add Expense'}</span>
           </button>
         </div>
       </div>
 
       {showCategoryForm && (
-        <form className="category-form" onSubmit={handleAddCategory}>
-          <div className="form-group">
-            <label>Category Name *</label>
-            <input
-              type="text"
-              required
-              value={categoryFormData.name}
-              onChange={(e) => setCategoryFormData({ name: e.target.value })}
-              placeholder="e.g., Gym Membership"
-            />
-          </div>
-          <div className="form-actions">
-            <button type="submit" className="btn-primary">Add Category</button>
-            <button type="button" className="btn-secondary" onClick={() => setShowCategoryForm(false)}>
-              Cancel
-            </button>
-          </div>
-        </form>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <form onSubmit={handleAddCategory} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Category Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={categoryFormData.name}
+                onChange={(e) => setCategoryFormData({ name: e.target.value })}
+                placeholder="e.g., Gym Membership"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex space-x-3">
+              <button
+                type="submit"
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
+              >
+                Add Category
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCategoryForm(false)}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       {showForm && (
-        <form className="expense-form" onSubmit={handleSubmit}>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Amount *</label>
-              <input
-                type="number"
-                step="0.01"
-                required
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Category *</label>
-              <select
-                required
-                value={formData.categoryId}
-                onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-              >
-                <option value="">Select category</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>Description *</label>
-            <input
-              type="text"
-              required
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="e.g., Grocery shopping"
-            />
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Date *</label>
-              <input
-                type="date"
-                required
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Amount *
+                </label>
                 <input
-                  type="checkbox"
-                  checked={formData.isRecurring}
-                  onChange={(e) => setFormData({ ...formData, isRecurring: e.target.checked })}
+                  type="number"
+                  step="0.01"
+                  required
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="0.00"
                 />
-                Recurring Expense
-              </label>
-            </div>
-          </div>
+              </div>
 
-          {formData.isRecurring && (
-            <div className="form-row">
-              <div className="form-group">
-                <label>Frequency</label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Category *
+                </label>
                 <select
-                  value={formData.recurringFrequency}
-                  onChange={(e) => setFormData({ ...formData, recurringFrequency: e.target.value as Expense['recurringFrequency'] })}
+                  required
+                  value={formData.categoryId}
+                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="yearly">Yearly</option>
+                  <option value="">Select category</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
                 </select>
               </div>
 
-              <div className="form-group">
-                <label>Next Due Date</label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Description *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="e.g., Grocery shopping"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Date *
+                </label>
                 <input
                   type="date"
-                  value={formData.nextDueDate}
-                  onChange={(e) => setFormData({ ...formData, nextDueDate: e.target.value })}
+                  required
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
             </div>
-          )}
 
-          <div className="form-group">
-            <label>Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={3}
-            />
-          </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isRecurring"
+                checked={formData.isRecurring}
+                onChange={(e) => setFormData({ ...formData, isRecurring: e.target.checked })}
+                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              />
+              <label htmlFor="isRecurring" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Recurring Expense
+              </label>
+            </div>
 
-          <div className="form-actions">
-            <button type="submit" className="btn-primary">
-              {editingExpense ? 'Update' : 'Add'} Expense
-            </button>
-            <button type="button" className="btn-secondary" onClick={resetForm}>
-              Cancel
-            </button>
-          </div>
-        </form>
+            {formData.isRecurring && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Frequency
+                  </label>
+                  <select
+                    value={formData.recurringFrequency}
+                    onChange={(e) => setFormData({ ...formData, recurringFrequency: e.target.value as Expense['recurringFrequency'] })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Next Due Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.nextDueDate}
+                    onChange={(e) => setFormData({ ...formData, nextDueDate: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Notes
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Optional notes..."
+              />
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                type="submit"
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
+              >
+                {editingExpense ? 'Update' : 'Add'} Expense
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
-      <div className="expense-list">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         {expenses.length === 0 ? (
-          <p className="empty-state">No expenses yet. Add your first expense!</p>
+          <div className="p-12 text-center">
+            <Wallet className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">No expenses yet. Add your first expense!</p>
+          </div>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Category</th>
-                <th>Amount</th>
-                <th>Recurring</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {expenses.map(expense => (
-                <tr key={expense.id}>
-                  <td>{format(expense.date, 'MMM dd, yyyy')}</td>
-                  <td>{expense.description}</td>
-                  <td>{getCategoryName(expense.categoryId)}</td>
-                  <td className="amount">${expense.amount.toFixed(2)}</td>
-                  <td>
-                    {expense.isRecurring ? (
-                      <span className="recurring-badge">
-                        {expense.recurringFrequency} {expense.nextDueDate && `(Next: ${format(expense.nextDueDate, 'MMM dd')})`}
-                      </span>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td className="actions">
-                    <button className="btn-edit" onClick={() => handleEdit(expense)}>Edit</button>
-                    <button className="btn-delete" onClick={() => handleDelete(expense.id)}>Delete</button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Description</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Category</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Recurring</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {expenses.map(expense => (
+                  <tr key={expense.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {format(expense.date, 'MMM dd, yyyy')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                      {expense.description}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                      {getCategoryName(expense.categoryId)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-red-600 dark:text-red-400">
+                      ${expense.amount.toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                      {expense.isRecurring ? (
+                        <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs">
+                          {expense.recurringFrequency} {expense.nextDueDate && `(Next: ${format(expense.nextDueDate, 'MMM dd')})`}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleEdit(expense)}
+                          className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(expense.id)}
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

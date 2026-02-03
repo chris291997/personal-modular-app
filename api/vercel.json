@@ -1,7 +1,0 @@
-{
-  "functions": {
-    "api/jira-proxy.ts": {
-      "maxDuration": 10
-    }
-  }
-}

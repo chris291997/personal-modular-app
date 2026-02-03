@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { getIncomes, addIncome, updateIncome, deleteIncome } from '../../../services/budgetService';
 import { Income } from '../../../types';
 import { format } from 'date-fns';
-import './IncomeTab.css';
+import { Plus, Edit2, Trash2, TrendingUp } from 'lucide-react';
 
 export default function IncomeTab() {
   const [incomes, setIncomes] = useState<Income[]>([]);
@@ -55,9 +55,10 @@ export default function IncomeTab() {
       }
       resetForm();
       loadIncomes();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving income:', error);
-      alert('Failed to save income');
+      const errorMessage = error?.message || 'Unknown error';
+      alert(`Failed to save income: ${errorMessage}\n\nCheck browser console for details.`);
     }
   };
 
@@ -97,118 +98,189 @@ export default function IncomeTab() {
   };
 
   if (loading) {
-    return <div className="loading">Loading incomes...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="income-tab">
-      <div className="tab-header">
-        <h2>Income Management</h2>
-        <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Cancel' : '+ Add Income'}
+    <div className="space-y-6 pb-20 md:pb-8">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+            <TrendingUp className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Income Management</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Track your income sources</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+        >
+          <Plus className="w-5 h-5" />
+          <span>{showForm ? 'Cancel' : 'Add Income'}</span>
         </button>
       </div>
 
       {showForm && (
-        <form className="income-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Amount *</label>
-            <input
-              type="number"
-              step="0.01"
-              required
-              value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-            />
-          </div>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Amount *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="0.00"
+                />
+              </div>
 
-          <div className="form-group">
-            <label>Source *</label>
-            <input
-              type="text"
-              required
-              value={formData.source}
-              onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-              placeholder="e.g., Salary, Freelance, etc."
-            />
-          </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Source *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.source}
+                  onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                  placeholder="e.g., Salary, Freelance, etc."
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
 
-          <div className="form-group">
-            <label>Frequency *</label>
-            <select
-              required
-              value={formData.frequency}
-              onChange={(e) => setFormData({ ...formData, frequency: e.target.value as Income['frequency'] })}
-            >
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="biweekly">Biweekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-            </select>
-          </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Frequency *
+                </label>
+                <select
+                  required
+                  value={formData.frequency}
+                  onChange={(e) => setFormData({ ...formData, frequency: e.target.value as Income['frequency'] })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Biweekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
 
-          <div className="form-group">
-            <label>Date *</label>
-            <input
-              type="date"
-              required
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            />
-          </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Date *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+            </div>
 
-          <div className="form-group">
-            <label>Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={3}
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Notes
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Optional notes..."
+              />
+            </div>
 
-          <div className="form-actions">
-            <button type="submit" className="btn-primary">
-              {editingIncome ? 'Update' : 'Add'} Income
-            </button>
-            <button type="button" className="btn-secondary" onClick={resetForm}>
-              Cancel
-            </button>
-          </div>
-        </form>
+            <div className="flex space-x-3">
+              <button
+                type="submit"
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
+              >
+                {editingIncome ? 'Update' : 'Add'} Income
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
-      <div className="income-list">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         {incomes.length === 0 ? (
-          <p className="empty-state">No income records yet. Add your first income!</p>
+          <div className="p-12 text-center">
+            <TrendingUp className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">No income records yet. Add your first income!</p>
+          </div>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Source</th>
-                <th>Amount</th>
-                <th>Frequency</th>
-                <th>Notes</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {incomes.map(income => (
-                <tr key={income.id}>
-                  <td>{format(income.date, 'MMM dd, yyyy')}</td>
-                  <td>{income.source}</td>
-                  <td className="amount">${income.amount.toFixed(2)}</td>
-                  <td>{income.frequency}</td>
-                  <td>{income.notes || '-'}</td>
-                  <td className="actions">
-                    <button className="btn-edit" onClick={() => handleEdit(income)}>Edit</button>
-                    <button className="btn-delete" onClick={() => handleDelete(income.id)}>Delete</button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Source</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Frequency</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Notes</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {incomes.map(income => (
+                  <tr key={income.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {format(income.date, 'MMM dd, yyyy')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                      {income.source}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600 dark:text-green-400">
+                      ${income.amount.toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 capitalize">
+                      {income.frequency}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                      {income.notes || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleEdit(income)}
+                          className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(income.id)}
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
