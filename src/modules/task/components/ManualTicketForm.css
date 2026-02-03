@@ -1,0 +1,12 @@
+.manual-ticket-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.manual-ticket-form h3 {
+  margin-bottom: 1.5rem;
+  color: var(--text);
+}

@@ -1,0 +1,67 @@
+.task-module {
+  width: 100%;
+}
+
+.task-header {
+  margin-bottom: 2rem;
+}
+
+.task-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.task-header p {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.info-banner {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid #3b82f6;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 1rem;
+  color: var(--text);
+  font-size: 0.875rem;
+}
+
+.task-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.error-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  color: var(--error);
+}
+
+.error-banner.info-banner {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid #3b82f6;
+  color: var(--text);
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .task-controls {
+    flex-direction: column;
+  }
+
+  .task-controls button {
+    width: 100%;
+  }
+}

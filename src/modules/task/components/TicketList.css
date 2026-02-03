@@ -1,0 +1,133 @@
+.ticket-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 2rem;
+}
+
+.ticket-list h2 {
+  margin-bottom: 1.5rem;
+  color: var(--text);
+}
+
+.ticket-bullet-list {
+  list-style: none;
+  padding: 0;
+}
+
+.ticket-item {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.2s;
+  position: relative;
+}
+
+.ticket-item:hover {
+  background: var(--surface-dark);
+}
+
+.ticket-item:last-child {
+  border-bottom: none;
+}
+
+.ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.ticket-key {
+  font-weight: 600;
+  color: var(--primary-color);
+  text-decoration: none;
+  font-size: 1.125rem;
+}
+
+.ticket-key:hover {
+  text-decoration: underline;
+}
+
+.ticket-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.status-to-do {
+  background: rgba(107, 114, 128, 0.1);
+  color: #6b7280;
+}
+
+.status-in-progress {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.status-done {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.status-blocked {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.ticket-title {
+  font-size: 1.125rem;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.ticket-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+
+.empty-state p {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.ticket-delete-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  padding: 0.25rem;
+}
+
+.ticket-delete-btn:hover {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .ticket-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .ticket-meta {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}
