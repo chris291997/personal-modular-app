@@ -8,6 +8,14 @@ export default async function handler(
   request: VercelRequest,
   response: VercelResponse
 ) {
+  // Handle CORS preflight
+  if (request.method === 'OPTIONS') {
+    response.setHeader('Access-Control-Allow-Origin', '*');
+    response.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return response.status(200).end();
+  }
+
   // Only allow GET requests
   if (request.method !== 'GET') {
     return response.status(405).json({ error: 'Method not allowed' });

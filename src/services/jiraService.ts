@@ -13,8 +13,29 @@ const CORS_PROXY_URL: string | null = null;
 
 // Option 2: Use your own serverless function (recommended)
 // Deploy the function in api/jira-proxy.ts to Vercel/Netlify
-// Then set this to your function URL, e.g.: 'https://your-app.vercel.app/api/jira-proxy'
-const SERVERLESS_PROXY_URL: string | null = null;
+// Auto-detect Vercel URL or set manually
+const getServerlessProxyUrl = (): string | null => {
+  // Check if we're on Vercel (production)
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    // Auto-detect Vercel deployment
+    if (hostname.includes('vercel.app') || hostname.includes('vercel.app')) {
+      return `${window.location.origin}/api/jira-proxy`;
+    }
+  }
+  // Manual override via environment variable
+  const envUrl = import.meta.env.VITE_SERVERLESS_PROXY_URL;
+  return envUrl || null;
+};
+
+const SERVERLESS_PROXY_URL: string | null = getServerlessProxyUrl();
+
+// Debug logging (remove in production if needed)
+if (SERVERLESS_PROXY_URL) {
+  console.log('✅ Using Jira proxy:', SERVERLESS_PROXY_URL);
+} else {
+  console.log('⚠️ Jira proxy not configured. Will attempt direct connection (may fail due to CORS).');
+}
 
 const getAuthHeader = () => {
   const credentials = btoa(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`);
@@ -52,7 +73,44 @@ export const searchTickets = async (filter: TaskFilter): Promise<JiraTicket[]> =
     
     // Use serverless proxy if configured (recommended)
     if (SERVERLESS_PROXY_URL) {
-      apiUrl = `${SERVERLESS_PROXY_URL}?url=${encodeURIComponent(apiUrl)}`;
+      const proxyUrl = `${SERVERLESS_PROXY_URL}?url=${encodeURIComponent(apiUrl)}`;
+      console.log('🔗 Fetching via proxy:', proxyUrl.substring(0, 100) + '...');
+      // Don't send auth header when using proxy - proxy handles it
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(`Jira API error: ${response.status} ${errorData.error || response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      return data.issues.map((issue: {
+        id: string;
+        key: string;
+        fields: {
+          summary: string;
+          status: { name: string };
+          assignee?: { displayName: string };
+          created: string;
+          updated: string;
+        };
+      }) => ({
+        id: issue.id,
+        key: issue.key,
+        title: issue.fields.summary,
+        status: issue.fields.status.name,
+        url: `${JIRA_BASE_URL}/browse/${issue.key}`,
+        assignee: issue.fields.assignee?.displayName,
+        created: new Date(issue.fields.created),
+        updated: new Date(issue.fields.updated),
+      })) as JiraTicket[];
     }
     // Use CORS proxy if configured (fallback, less secure)
     else if (CORS_PROXY_URL) {
@@ -116,6 +174,45 @@ export const getTicket = async (ticketKey: string): Promise<JiraTicket | null> =
     // Use serverless proxy if configured
     if (SERVERLESS_PROXY_URL) {
       apiUrl = `${SERVERLESS_PROXY_URL}?url=${encodeURIComponent(apiUrl)}`;
+      // Don't send auth header when using proxy - proxy handles it
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(`Jira API error: ${response.status} ${errorData.error || response.statusText}`);
+      }
+      
+      const issue = await response.json() as {
+        id: string;
+        key: string;
+        fields: {
+          summary: string;
+          status: { name: string };
+          assignee?: { displayName: string };
+          created: string;
+          updated: string;
+        };
+      };
+      
+      return {
+        id: issue.id,
+        key: issue.key,
+        title: issue.fields.summary,
+        status: issue.fields.status.name,
+        url: `${JIRA_BASE_URL}/browse/${issue.key}`,
+        assignee: issue.fields.assignee?.displayName,
+        created: new Date(issue.fields.created),
+        updated: new Date(issue.fields.updated),
+      };
     }
     // Use CORS proxy if configured
     else if (CORS_PROXY_URL) {
