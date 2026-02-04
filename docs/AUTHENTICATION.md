@@ -49,7 +49,33 @@ To add more domains:
 **Admin Email**: `christopherbenosa81@gmail.com`  
 **Default Password**: `Admin@123!` (⚠️ Change after first login!)
 
-### Option 1: Firebase Console (Easiest - Recommended)
+### Option 1: Using the Create Admin Script (Easiest - Recommended) ⭐
+
+This is the simplest method - just run a script locally:
+
+1. **Make sure you're in the project directory:**
+   ```bash
+   cd "C:\Users\Datafied\Desktop\chris\private repos\personal management app"
+   ```
+
+2. **Run the script:**
+   ```bash
+   npm run create-admin
+   ```
+
+3. **The script will:**
+   - Check if the admin user already exists
+   - Create the user in Firebase Auth
+   - Create the user document in Firestore with hashed password
+   - Send a verification email
+
+4. **Done!** You can now log in with:
+   - Email: `christopherbenosa81@gmail.com`
+   - Password: `Admin@123!`
+
+**Note**: Make sure Email/Password authentication is enabled in Firebase Console (see [Firebase Authentication Setup](#firebase-authentication-setup) above).
+
+### Option 2: Firebase Console (Manual Setup)
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Select your project: **personal-modular-app-3ca9e**
@@ -79,14 +105,14 @@ To add more domains:
 
 **Better Option**: Use the Admin API endpoint `/api/admin-users` with action `createUser` to automatically hash the password.
 
-### Option 2: Use Admin API (After Vercel Setup)
+### Option 3: Use Admin API (After Vercel Setup)
 
 Once you've set up `FIREBASE_SERVICE_ACCOUNT` in Vercel:
 
 1. Deploy your app to Vercel
 2. Call the Admin API:
    ```bash
-   curl -X POST https://your-app.vercel.app/api/admin-users \
+   curl -X POST https://personal-modular-app.vercel.app/api/admin-users \
      -H "Content-Type: application/json" \
      -d '{
        "action": "createUser",
@@ -100,7 +126,7 @@ Once you've set up `FIREBASE_SERVICE_ACCOUNT` in Vercel:
      }'
    ```
 
-### Option 3: Browser Console Script
+### Option 4: Browser Console Script
 
 1. Start your dev server: `npm run dev`
 2. Open browser console (F12)
