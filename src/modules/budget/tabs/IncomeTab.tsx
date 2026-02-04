@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
-import { getIncomes, addIncome, updateIncome, deleteIncome } from '../../../services/budgetService';
 import { Income } from '../../../types';
 import { format } from 'date-fns';
 import { Plus, Edit2, Trash2, TrendingUp } from 'lucide-react';
 import { useCurrency } from '../../../hooks/useCurrency';
+import { useBudgetStore } from '../../../stores/budgetStore';
 
 export default function IncomeTab() {
   const { formatCurrency } = useCurrency();
-  const [incomes, setIncomes] = useState<Income[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { incomes, loading, loadIncomes, addIncome, updateIncome, deleteIncome } = useBudgetStore();
   const [showForm, setShowForm] = useState(false);
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
 
@@ -21,21 +20,8 @@ export default function IncomeTab() {
   });
 
   useEffect(() => {
-    loadIncomes();
-  }, []);
-
-  const loadIncomes = async () => {
-    try {
-      setLoading(true);
-      const data = await getIncomes();
-      setIncomes(data);
-    } catch (error) {
-      console.error('Error loading incomes:', error);
-      alert('Failed to load incomes');
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadIncomes(); // Load from store (will use cache if available)
+  }, [loadIncomes]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +42,7 @@ export default function IncomeTab() {
         });
       }
       resetForm();
-      loadIncomes();
+      // Store will automatically refresh after add/update
     } catch (error: any) {
       console.error('Error saving income:', error);
       const errorMessage = error?.message || 'Unknown error';
@@ -80,10 +66,11 @@ export default function IncomeTab() {
     if (!confirm('Are you sure you want to delete this income?')) return;
     try {
       await deleteIncome(id);
-      loadIncomes();
+      // Store will automatically update state after deletion
     } catch (error) {
       console.error('Error deleting income:', error);
-      alert('Failed to delete income');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to delete income: ${errorMessage}`);
     }
   };
 
@@ -99,7 +86,7 @@ export default function IncomeTab() {
     setShowForm(false);
   };
 
-  if (loading) {
+  if (loading.incomes) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>

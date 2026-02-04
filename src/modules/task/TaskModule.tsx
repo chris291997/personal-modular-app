@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
 import { searchTickets } from '../../services/jiraService';
-import { saveTicket, getSavedTickets, deleteTicket } from '../../services/taskService';
 import { JiraTicket, TaskFilter } from '../../types';
 import { subMonths } from 'date-fns';
 import './TaskModule.css';
 import TicketList from './components/TicketList';
 import FilterForm from './components/FilterForm';
 import ManualTicketForm from './components/ManualTicketForm';
+import { useTaskStore } from '../../stores/taskStore';
 
 export default function TaskModule() {
-  const [tickets, setTickets] = useState<JiraTicket[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { tickets, loading, loadTickets, addTicket, deleteTicket } = useTaskStore();
   const [error, setError] = useState<string | null>(null);
   const [showManualForm, setShowManualForm] = useState(false);
   
@@ -28,8 +27,9 @@ export default function TaskModule() {
       setError(null);
       const apiResults = await searchTickets(filter);
       
-      // Also load saved tickets and merge (avoid duplicates by key)
-      const savedTickets = await getSavedTickets();
+      // Also load saved tickets from store and merge (avoid duplicates by key)
+      await loadTickets();
+      const savedTickets = useTaskStore.getState().tickets;
       const savedMap = new Map(savedTickets.map(t => [t.key, t]));
       
       // Add API results, but don't override saved tickets
@@ -39,7 +39,8 @@ export default function TaskModule() {
         }
       });
       
-      setTickets(Array.from(savedMap.values()));
+      // Update store with merged tickets
+      useTaskStore.setState({ tickets: Array.from(savedMap.values()) });
     } catch (err: any) {
       console.error('Error fetching tickets:', err);
       if (err.message === 'CORS_ERROR' || err.message?.includes('CORS')) {
@@ -48,10 +49,9 @@ export default function TaskModule() {
         setError(err.message || 'Failed to fetch tickets from Jira. Please use "Add Manual Ticket" to add tickets manually.');
       }
       
-      // Still load saved tickets even if API fails
+      // Still load saved tickets from store even if API fails
       try {
-        const savedTickets = await getSavedTickets();
-        setTickets(savedTickets);
+        await loadTickets();
       } catch (loadError) {
         console.error('Error loading saved tickets:', loadError);
       }
@@ -62,14 +62,7 @@ export default function TaskModule() {
 
   const handleAddManual = async (ticket: Omit<JiraTicket, 'id' | 'created' | 'updated'>) => {
     try {
-      const id = await saveTicket(ticket);
-      const newTicket: JiraTicket = {
-        ...ticket,
-        id,
-        created: new Date(),
-        updated: new Date(),
-      };
-      setTickets([newTicket, ...tickets]);
+      await addTicket(ticket); // Store will handle saving and updating state
       setShowManualForm(false);
     } catch (error: unknown) {
       console.error('Error saving ticket:', error);
@@ -81,19 +74,14 @@ export default function TaskModule() {
   const handleDeleteTicket = async (id: string) => {
     if (!confirm('Are you sure you want to delete this ticket?')) return;
     try {
-      await deleteTicket(id);
-      setTickets(tickets.filter(t => t.id !== id));
+      await deleteTicket(id); // Store will handle deletion and updating state
     } catch (error: unknown) {
       console.error('Error deleting ticket:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      if (errorMessage.includes('authenticated')) {
-        alert('Please wait for authentication to complete and try again.');
-        return;
-      }
       if (errorMessage.includes('access denied') || errorMessage.includes('not found')) {
         alert('You do not have permission to delete this ticket or it does not exist.');
         // Reload tickets to sync state
-        loadSavedTickets();
+        await loadTickets(true);
         return;
       }
       alert(`Failed to delete ticket: ${errorMessage}\n\nCheck browser console for details.`);
@@ -101,18 +89,8 @@ export default function TaskModule() {
   };
 
   useEffect(() => {
-    loadSavedTickets();
-  }, []);
-
-  const loadSavedTickets = async () => {
-    try {
-      const saved = await getSavedTickets();
-      setTickets(saved);
-    } catch (error) {
-      console.error('Error loading saved tickets:', error);
-      // Don't show alert for tickets, just log the error
-    }
-  };
+    loadTickets(); // Load from store (will use cache if available)
+  }, [loadTickets]);
 
   return (
     <div className="task-module">

@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react';
-import { getIncomes, getExpenses, getDebts, getSavingsGoals } from '../../../services/budgetService';
-import { Income, Expense, Debt, SavingsGoal } from '../../../types';
+import { useEffect } from 'react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { 
   TrendingUp, TrendingDown, Wallet, CreditCard, Target, 
@@ -10,54 +8,35 @@ import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, BarChart,
 import { BarChart3 } from 'lucide-react';
 import ConsultForm from '../../../components/ConsultForm';
 import { useCurrency } from '../../../hooks/useCurrency';
+import { useBudgetStore } from '../../../stores/budgetStore';
 
 export default function DashboardTab() {
   const { formatCurrency } = useCurrency();
-  const [incomes, setIncomes] = useState<Income[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [debts, setDebts] = useState<Debt[]>([]);
-  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  // Use store instead of local state
+  const {
+    incomes,
+    expenses,
+    debts,
+    savingsGoals,
+    loading,
+    loadIncomes,
+    loadExpenses,
+    loadDebts,
+    loadSavingsGoals,
+  } = useBudgetStore();
 
   useEffect(() => {
-    let isMounted = true;
+    // Load data from store (will use cache if available)
+    const now = new Date();
+    const start = startOfMonth(now);
+    const end = endOfMonth(now);
     
-    const loadDataAsync = async () => {
-      try {
-        setLoading(true);
-        const now = new Date();
-        const start = startOfMonth(now);
-        const end = endOfMonth(now);
-
-        const [incomesData, expensesData, debtsData, goalsData] = await Promise.all([
-          getIncomes(start, end),
-          getExpenses(start, end),
-          getDebts(),
-          getSavingsGoals(),
-        ]);
-
-        // Only update state if component is still mounted
-        if (isMounted) {
-          setIncomes(incomesData);
-          setExpenses(expensesData);
-          setDebts(debtsData);
-          setSavingsGoals(goalsData);
-        }
-      } catch (error) {
-        console.error('Error loading dashboard data:', error);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-    
-    loadDataAsync();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    loadIncomes(start, end);
+    loadExpenses(start, end);
+    loadDebts();
+    loadSavingsGoals();
+  }, [loadIncomes, loadExpenses, loadDebts, loadSavingsGoals]);
 
 
   const calculateMonthlyIncome = () => {
@@ -92,7 +71,9 @@ export default function DashboardTab() {
     }
   };
 
-  if (loading) {
+  const isLoading = loading.incomes || loading.expenses || loading.debts || loading.savingsGoals;
+  
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>

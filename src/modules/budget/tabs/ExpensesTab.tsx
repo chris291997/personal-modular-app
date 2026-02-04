@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { getExpenses, addExpense, updateExpense, deleteExpense, getCategories, addCategory } from '../../../services/budgetService';
 import { Expense, ExpenseCategory } from '../../../types';
 import { format } from 'date-fns';
 import { Plus, Edit2, Trash2, Wallet, Tag } from 'lucide-react';
 import { useCurrency } from '../../../hooks/useCurrency';
+import { useBudgetStore } from '../../../stores/budgetStore';
 
 const COMMON_CATEGORIES = [
   'Food',
@@ -34,9 +34,7 @@ const COMMON_CATEGORIES = [
 
 export default function ExpensesTab() {
   const { formatCurrency } = useCurrency();
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { expenses, categories, loading, loadExpenses, loadCategories, addExpense, updateExpense, deleteExpense, addCategory } = useBudgetStore();
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
@@ -57,52 +55,39 @@ export default function ExpensesTab() {
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [expensesData, categoriesData] = await Promise.all([
-        getExpenses(),
-        getCategories(),
-      ]);
-      setExpenses(expensesData);
-      
-      // If no categories exist, create the common categories in the database
-      if (categoriesData.length === 0) {
-        try {
-          // Create all common categories in the database in parallel (batch)
-          const categoryPromises = COMMON_CATEGORIES.map(categoryName =>
-            addCategory({
-              name: categoryName,
-              isCustom: false,
-            })
-          );
-          await Promise.all(categoryPromises);
-          // Reload categories after creating them
-          const newCategoriesData = await getCategories();
-          setCategories(newCategoriesData);
-        } catch (error) {
-          console.error('Error creating default categories:', error);
-          // If creation fails, still show them in UI
-          const commonCats: ExpenseCategory[] = COMMON_CATEGORIES.map(name => ({
-            id: name,
-            name,
-            isCustom: false,
-          }));
-          setCategories(commonCats);
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          loadExpenses(), // Load from store (will use cache if available)
+          loadCategories(), // Load from store (will use cache if available)
+        ]);
+        
+        // If no categories exist, create the common categories in the database
+        const currentCategories = useBudgetStore.getState().categories;
+        if (currentCategories.length === 0) {
+          try {
+            // Create all common categories in the database in parallel (batch)
+            const categoryPromises = COMMON_CATEGORIES.map(categoryName =>
+              addCategory({
+                name: categoryName,
+                isCustom: false,
+              })
+            );
+            await Promise.all(categoryPromises);
+            // Reload categories after creating them
+            await loadCategories(true); // Force refresh
+          } catch (error) {
+            console.error('Error creating default categories:', error);
+          }
         }
-      } else {
-        setCategories(categoriesData);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        alert('Failed to load expenses');
       }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      alert('Failed to load expenses');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    
+    loadData();
+  }, [loadExpenses, loadCategories, addCategory]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,7 +112,7 @@ export default function ExpensesTab() {
         });
       }
       resetForm();
-      loadData();
+      // Store will automatically refresh after add/update
     } catch (error: any) {
       console.error('Error saving expense:', error);
       const errorMessage = error?.message || 'Unknown error';
@@ -144,7 +129,7 @@ export default function ExpensesTab() {
       });
       setCategoryFormData({ name: '' });
       setShowCategoryForm(false);
-      loadData();
+      // Store will automatically refresh after addCategory
     } catch (error: any) {
       console.error('Error adding category:', error);
       const errorMessage = error?.message || 'Unknown error';
@@ -171,7 +156,7 @@ export default function ExpensesTab() {
     if (!confirm('Are you sure you want to delete this expense?')) return;
     try {
       await deleteExpense(id);
-      loadData();
+      // Store will automatically update after delete
     } catch (error) {
       console.error('Error deleting expense:', error);
       alert('Failed to delete expense');
@@ -197,7 +182,7 @@ export default function ExpensesTab() {
     return categories.find(c => c.id === categoryId)?.name || categoryId;
   };
 
-  if (loading) {
+  if (loading.expenses || loading.categories) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>

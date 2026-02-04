@@ -116,6 +116,17 @@ export const logout = async (): Promise<void> => {
   try {
     await signOut(auth);
     notifyAuthStateListeners(null);
+    
+    // Reset stores on logout
+    if (typeof window !== 'undefined') {
+      // Dynamically import to avoid circular dependencies
+      import('../stores/budgetStore').then(({ useBudgetStore }) => {
+        useBudgetStore.getState().reset();
+      });
+      import('../stores/taskStore').then(({ useTaskStore }) => {
+        useTaskStore.getState().reset();
+      });
+    }
   } catch (error) {
     console.error('Logout error:', error);
     throw new Error('Failed to logout');

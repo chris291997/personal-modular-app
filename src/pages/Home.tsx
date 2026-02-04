@@ -2,20 +2,21 @@ import { Link } from 'react-router-dom';
 import { getEnabledModules } from '../modules';
 import { Wallet, CheckSquare, TrendingUp, BarChart3, ArrowRight, HelpCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { getIncomes, getExpenses } from '../services/budgetService';
-import { getSavedTickets } from '../services/taskService';
 import ConsultForm from '../components/ConsultForm';
 import { useCurrency } from '../hooks/useCurrency';
 import { getCurrentUser, subscribeToAuthState } from '../services/authService';
 import { User } from '../types/user';
+import { useBudgetStore } from '../stores/budgetStore';
+import { useTaskStore } from '../stores/taskStore';
 
 export default function Home() {
   const modules = getEnabledModules();
-  const [totalBalance, setTotalBalance] = useState(0);
-  const [activeTasks, setActiveTasks] = useState(0);
-  const [savingsGoals] = useState(0);
   const [user, setUser] = useState<User | null>(getCurrentUser());
   const { formatCurrency } = useCurrency();
+  
+  // Use stores
+  const { incomes, expenses, loadIncomes, loadExpenses } = useBudgetStore();
+  const { tickets, loadTickets } = useTaskStore();
 
   useEffect(() => {
     // Subscribe to auth state changes instead of polling
@@ -30,32 +31,17 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    // Calculate total balance
-    const calculateBalance = async () => {
-      try {
-        const incomes = await getIncomes();
-        const expenses = await getExpenses();
-        const totalIncome = incomes.reduce((sum, inc) => sum + (inc.amount || 0), 0);
-        const totalExpense = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
-        setTotalBalance(totalIncome - totalExpense);
-      } catch (error) {
-        console.error('Error calculating balance:', error);
-      }
-    };
+    // Load data from stores (will use cache if available)
+    loadIncomes();
+    loadExpenses();
+    loadTickets();
+  }, [loadIncomes, loadExpenses, loadTickets]);
 
-    // Get active tasks
-    const getTasks = async () => {
-      try {
-        const tickets = await getSavedTickets();
-        setActiveTasks(tickets.length);
-      } catch (error) {
-        console.error('Error getting tasks:', error);
-      }
-    };
-
-    calculateBalance();
-    getTasks();
-  }, []);
+  // Calculate derived values from store data
+  const totalBalance = incomes.reduce((sum, inc) => sum + (inc.amount || 0), 0) - 
+                       expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+  const activeTasks = tickets.length;
+  const savingsGoals = 0; // Will be calculated from store when needed
 
   return (
     <div className="w-full pb-20 md:pb-8 space-y-4 md:space-y-6">

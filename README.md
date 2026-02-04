@@ -52,6 +52,7 @@ All documentation is organized in the `docs/` folder:
 - **[JIRA_SETUP.md](docs/JIRA_SETUP.md)** - Jira integration setup and troubleshooting
 - **[PWA_SETUP.md](docs/PWA_SETUP.md)** - PWA installation and configuration
 - **[FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md)** - Firebase configuration and security rules
+- **[FIRESTORE_COLLECTIONS.md](docs/FIRESTORE_COLLECTIONS.md)** - Firestore collections reference and data structure
 - **[NEXT_STEPS.md](docs/NEXT_STEPS.md)** - Quick reference for next steps
 - **[PROJECT_SUMMARY.md](docs/PROJECT_SUMMARY.md)** - Complete project overview
 

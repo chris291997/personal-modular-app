@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
-import { getDebts, addDebt, updateDebt, deleteDebt } from '../../../services/budgetService';
 import { Debt } from '../../../types';
 import { Plus, Edit2, Trash2, CreditCard } from 'lucide-react';
 import { useCurrency } from '../../../hooks/useCurrency';
+import { useBudgetStore } from '../../../stores/budgetStore';
 
 export default function DebtsTab() {
   const { formatCurrency } = useCurrency();
-  const [debts, setDebts] = useState<Debt[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { debts, loading, loadDebts, addDebt, updateDebt, deleteDebt } = useBudgetStore();
   const [showForm, setShowForm] = useState(false);
   const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
 
@@ -26,22 +25,8 @@ export default function DebtsTab() {
   });
 
   useEffect(() => {
-    loadDebts();
-  }, []);
-
-  const loadDebts = async () => {
-    try {
-      setLoading(true);
-      const data = await getDebts();
-      setDebts(data);
-    } catch (error) {
-      console.error('Error loading debts:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      alert(`Failed to load debts: ${errorMessage}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadDebts(); // Load from store (will use cache if available)
+  }, [loadDebts]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +59,7 @@ export default function DebtsTab() {
         });
       }
       resetForm();
-      loadDebts();
+      // Store will automatically refresh after add/update
     } catch (error: unknown) {
       console.error('Error saving debt:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -112,10 +97,11 @@ export default function DebtsTab() {
     if (!confirm('Are you sure you want to delete this debt?')) return;
     try {
       await deleteDebt(id);
-      loadDebts();
+      // Store will automatically update state after deletion
     } catch (error) {
       console.error('Error deleting debt:', error);
-      alert('Failed to delete debt');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to delete debt: ${errorMessage}`);
     }
   };
 
@@ -137,7 +123,7 @@ export default function DebtsTab() {
     setShowForm(false);
   };
 
-  if (loading) {
+  if (loading.debts) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>

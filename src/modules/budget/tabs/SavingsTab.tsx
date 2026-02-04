@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
-import { getSavingsGoals, addSavingsGoal, updateSavingsGoal, deleteSavingsGoal } from '../../../services/budgetService';
 import { SavingsGoal } from '../../../types';
 import { format } from 'date-fns';
 import { Plus, Edit2, Trash2, Target, DollarSign } from 'lucide-react';
 import { useCurrency } from '../../../hooks/useCurrency';
+import { useBudgetStore } from '../../../stores/budgetStore';
 
 export default function SavingsTab() {
   const { formatCurrency } = useCurrency();
-  const [goals, setGoals] = useState<SavingsGoal[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { savingsGoals: goals, loading, loadSavingsGoals, addSavingsGoal, updateSavingsGoal, deleteSavingsGoal } = useBudgetStore();
   const [showForm, setShowForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
   const [contributingGoalId, setContributingGoalId] = useState<string | null>(null);
@@ -23,22 +22,8 @@ export default function SavingsTab() {
   });
 
   useEffect(() => {
-    loadGoals();
-  }, []);
-
-  const loadGoals = async () => {
-    try {
-      setLoading(true);
-      const data = await getSavingsGoals();
-      setGoals(data);
-    } catch (error) {
-      console.error('Error loading savings goals:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      alert(`Failed to load savings goals: ${errorMessage}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadSavingsGoals(); // Load from store (will use cache if available)
+  }, [loadSavingsGoals]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +46,7 @@ export default function SavingsTab() {
         });
       }
       resetForm();
-      loadGoals();
+      // Store will automatically refresh after add/update
     } catch (error: unknown) {
       console.error('Error saving savings goal:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -93,10 +78,11 @@ export default function SavingsTab() {
     if (!confirm('Are you sure you want to delete this savings goal?')) return;
     try {
       await deleteSavingsGoal(id);
-      loadGoals();
+      // Store will automatically update state after deletion
     } catch (error) {
       console.error('Error deleting savings goal:', error);
-      alert('Failed to delete savings goal');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to delete savings goal: ${errorMessage}`);
     }
   };
 
@@ -131,14 +117,14 @@ export default function SavingsTab() {
       });
       setContributionAmount('');
       setContributingGoalId(null);
-      loadGoals();
+      // Store will automatically update state after updateSavingsGoal
     } catch (error) {
       console.error('Error adding contribution:', error);
       alert('Failed to add contribution');
     }
   };
 
-  if (loading) {
+  if (loading.savingsGoals) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
