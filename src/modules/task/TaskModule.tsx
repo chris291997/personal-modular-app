@@ -71,9 +71,10 @@ export default function TaskModule() {
       };
       setTickets([newTicket, ...tickets]);
       setShowManualForm(false);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error saving ticket:', error);
-      alert('Failed to save ticket. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to save ticket: ${errorMessage}\n\nCheck browser console for details.`);
     }
   };
 
@@ -82,14 +83,24 @@ export default function TaskModule() {
     try {
       await deleteTicket(id);
       setTickets(tickets.filter(t => t.id !== id));
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error deleting ticket:', error);
-      alert('Failed to delete ticket. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage.includes('authenticated')) {
+        alert('Please wait for authentication to complete and try again.');
+        return;
+      }
+      if (errorMessage.includes('access denied') || errorMessage.includes('not found')) {
+        alert('You do not have permission to delete this ticket or it does not exist.');
+        // Reload tickets to sync state
+        loadSavedTickets();
+        return;
+      }
+      alert(`Failed to delete ticket: ${errorMessage}\n\nCheck browser console for details.`);
     }
   };
 
   useEffect(() => {
-    // Load saved tickets from Firebase on mount
     loadSavedTickets();
   }, []);
 
@@ -99,6 +110,7 @@ export default function TaskModule() {
       setTickets(saved);
     } catch (error) {
       console.error('Error loading saved tickets:', error);
+      // Don't show alert for tickets, just log the error
     }
   };
 

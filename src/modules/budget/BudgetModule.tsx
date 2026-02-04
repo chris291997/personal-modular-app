@@ -63,12 +63,12 @@ export default function BudgetModule() {
 
       {/* Tab Content */}
       <div>
-        {activeTab === 'dashboard' && <DashboardTab />}
-        {activeTab === 'income' && <IncomeTab />}
-        {activeTab === 'expenses' && <ExpensesTab />}
-        {activeTab === 'debts' && <DebtsTab />}
-        {activeTab === 'savings' && <SavingsTab />}
-        {activeTab === 'consult' && <ConsultTab />}
+        {activeTab === 'dashboard' && <DashboardTab key="dashboard" />}
+        {activeTab === 'income' && <IncomeTab key="income" />}
+        {activeTab === 'expenses' && <ExpensesTab key="expenses" />}
+        {activeTab === 'debts' && <DebtsTab key="debts" />}
+        {activeTab === 'savings' && <SavingsTab key="savings" />}
+        {activeTab === 'consult' && <ConsultTab key="consult" />}
       </div>
     </div>
   );

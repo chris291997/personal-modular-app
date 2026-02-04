@@ -6,6 +6,20 @@ import { Plus, Edit2, Trash2, Wallet, Tag } from 'lucide-react';
 import { useCurrency } from '../../../hooks/useCurrency';
 
 const COMMON_CATEGORIES = [
+  'Food',
+  'Device',
+  'Service',
+  'Rent',
+  'Medical',
+  'Dental',
+  'Sports',
+  'Leisure',
+  'Travel',
+  'Gasoline',
+  'Groceries',
+  'Home Essentials',
+  'Materials',
+  'Worker Salary',
   'Food & Dining',
   'Transportation',
   'Bills & Utilities',
@@ -13,9 +27,9 @@ const COMMON_CATEGORIES = [
   'Entertainment',
   'Healthcare',
   'Education',
-  'Travel',
   'Personal Care',
   'Subscriptions',
+  'Other',
 ];
 
 export default function ExpensesTab() {
@@ -55,13 +69,30 @@ export default function ExpensesTab() {
       ]);
       setExpenses(expensesData);
       
+      // If no categories exist, create the common categories in the database
       if (categoriesData.length === 0) {
-        const commonCats: ExpenseCategory[] = COMMON_CATEGORIES.map(name => ({
-          id: name,
-          name,
-          isCustom: false,
-        }));
-        setCategories(commonCats);
+        try {
+          // Create all common categories in the database in parallel (batch)
+          const categoryPromises = COMMON_CATEGORIES.map(categoryName =>
+            addCategory({
+              name: categoryName,
+              isCustom: false,
+            })
+          );
+          await Promise.all(categoryPromises);
+          // Reload categories after creating them
+          const newCategoriesData = await getCategories();
+          setCategories(newCategoriesData);
+        } catch (error) {
+          console.error('Error creating default categories:', error);
+          // If creation fails, still show them in UI
+          const commonCats: ExpenseCategory[] = COMMON_CATEGORIES.map(name => ({
+            id: name,
+            name,
+            isCustom: false,
+          }));
+          setCategories(commonCats);
+        }
       } else {
         setCategories(categoriesData);
       }

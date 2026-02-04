@@ -33,7 +33,8 @@ export default function SavingsTab() {
       setGoals(data);
     } catch (error) {
       console.error('Error loading savings goals:', error);
-      alert('Failed to load savings goals');
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert(`Failed to load savings goals: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -61,10 +62,18 @@ export default function SavingsTab() {
       }
       resetForm();
       loadGoals();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving savings goal:', error);
-      const errorMessage = error?.message || 'Unknown error';
-      alert(`Failed to save savings goal: ${errorMessage}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage.includes('authenticated')) {
+        alert('Please wait for authentication to complete and try again.');
+        // Retry after a delay
+        setTimeout(() => {
+          handleSubmit(e);
+        }, 1000);
+        return;
+      }
+      alert(`Failed to save savings goal: ${errorMessage}\n\nCheck browser console for details.`);
     }
   };
 

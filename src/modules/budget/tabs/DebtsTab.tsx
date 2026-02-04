@@ -36,7 +36,8 @@ export default function DebtsTab() {
       setDebts(data);
     } catch (error) {
       console.error('Error loading debts:', error);
-      alert('Failed to load debts');
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert(`Failed to load debts: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -74,10 +75,18 @@ export default function DebtsTab() {
       }
       resetForm();
       loadDebts();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving debt:', error);
-      const errorMessage = error?.message || 'Unknown error';
-      alert(`Failed to save debt: ${errorMessage}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage.includes('authenticated')) {
+        alert('Please wait for authentication to complete and try again.');
+        // Retry after a delay
+        setTimeout(() => {
+          handleSubmit(e);
+        }, 1000);
+        return;
+      }
+      alert(`Failed to save debt: ${errorMessage}\n\nCheck browser console for details.`);
     }
   };
 

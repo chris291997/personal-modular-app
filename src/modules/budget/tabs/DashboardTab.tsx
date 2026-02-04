@@ -20,33 +20,45 @@ export default function DashboardTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
+    let isMounted = true;
+    
+    const loadDataAsync = async () => {
+      try {
+        setLoading(true);
+        const now = new Date();
+        const start = startOfMonth(now);
+        const end = endOfMonth(now);
+
+        const [incomesData, expensesData, debtsData, goalsData] = await Promise.all([
+          getIncomes(start, end),
+          getExpenses(start, end),
+          getDebts(),
+          getSavingsGoals(),
+        ]);
+
+        // Only update state if component is still mounted
+        if (isMounted) {
+          setIncomes(incomesData);
+          setExpenses(expensesData);
+          setDebts(debtsData);
+          setSavingsGoals(goalsData);
+        }
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadDataAsync();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const now = new Date();
-      const start = startOfMonth(now);
-      const end = endOfMonth(now);
-
-      const [incomesData, expensesData, debtsData, goalsData] = await Promise.all([
-        getIncomes(start, end),
-        getExpenses(start, end),
-        getDebts(),
-        getSavingsGoals(),
-      ]);
-
-      setIncomes(incomesData);
-      setExpenses(expensesData);
-      setDebts(debtsData);
-      setSavingsGoals(goalsData);
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const calculateMonthlyIncome = () => {
     return incomes.reduce((sum, income) => {

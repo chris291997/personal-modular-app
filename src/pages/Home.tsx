@@ -6,13 +6,28 @@ import { getIncomes, getExpenses } from '../services/budgetService';
 import { getSavedTickets } from '../services/taskService';
 import ConsultForm from '../components/ConsultForm';
 import { useCurrency } from '../hooks/useCurrency';
+import { getCurrentUser, subscribeToAuthState } from '../services/authService';
+import { User } from '../types/user';
 
 export default function Home() {
   const modules = getEnabledModules();
   const [totalBalance, setTotalBalance] = useState(0);
   const [activeTasks, setActiveTasks] = useState(0);
   const [savingsGoals] = useState(0);
+  const [user, setUser] = useState<User | null>(getCurrentUser());
   const { formatCurrency } = useCurrency();
+
+  useEffect(() => {
+    // Subscribe to auth state changes instead of polling
+    const unsubscribe = subscribeToAuthState((currentUser: User | null) => {
+      setUser(currentUser);
+    });
+    
+    // Set initial user
+    setUser(getCurrentUser());
+    
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     // Calculate total balance
@@ -45,22 +60,13 @@ export default function Home() {
   return (
     <div className="w-full pb-20 md:pb-8 space-y-4 md:space-y-6">
       {/* Header with greeting */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-            Hello, Chris
-          </h1>
-          <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
-            Welcome back to your dashboard
-          </p>
-        </div>
-        <div className="w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden shadow-lg ring-2 ring-purple-500/50">
-          <img 
-            src="/caveman4-01.png" 
-            alt="Profile" 
-            className="w-full h-full object-cover"
-          />
-        </div>
+      <div>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+          Hello, {user?.name || 'User'}
+        </h1>
+        <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+          Welcome back to your dashboard
+        </p>
       </div>
 
       {/* Total Balance and Modules - Side by Side */}

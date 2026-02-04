@@ -22,6 +22,9 @@ const VAPID_KEY = "BNLQYYInyhbO4-ZGc9OCF-WyOj7xvPV10BlWDuo2Kk8uotM-RvNTLAH-ZK-Cx
 const app = initializeApp(firebaseConfig);
 
 // Initialize services
+// Note: Firestore offline persistence is enabled by default
+// This creates persistent connections (Listen channels) for offline support
+// This is normal behavior and allows the app to work offline
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 

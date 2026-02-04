@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { getEnabledModules } from '../modules';
 import ThemeToggle from './ThemeToggle';
-import { getCurrentUser, logout } from '../services/authService';
+import { getCurrentUser, logout, subscribeToAuthState } from '../services/authService';
 import { Home as HomeIcon, Wallet, CheckSquare, LogOut, User as UserIcon, Settings } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { User } from '../types/user';
@@ -18,10 +18,15 @@ export default function Layout({ children }: LayoutProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setUser(getCurrentUser());
-    }, 1000);
-    return () => clearInterval(interval);
+    // Subscribe to auth state changes instead of polling
+    const unsubscribe = subscribeToAuthState((currentUser: User | null) => {
+      setUser(currentUser);
+    });
+    
+    // Set initial user
+    setUser(getCurrentUser());
+    
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
