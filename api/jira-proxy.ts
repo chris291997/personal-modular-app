@@ -4,6 +4,16 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return 'Unknown error';
+  }
+}
+
 export default async function handler(
   request: VercelRequest,
   response: VercelResponse
@@ -162,10 +172,10 @@ export default async function handler(
         response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
         return response.status(200).json(data);
-      } catch (userError: any) {
+      } catch (userError: unknown) {
         return response.status(500).json({
           error: 'Failed to get current user',
-          details: userError.message,
+          details: getErrorMessage(userError),
         });
       }
     }
@@ -204,8 +214,8 @@ export default async function handler(
     response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     return response.status(200).json(data);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Proxy error:', error);
-    return response.status(500).json({ error: error.message || 'Internal server error' });
+    return response.status(500).json({ error: getErrorMessage(error) || 'Internal server error' });
   }
 }
