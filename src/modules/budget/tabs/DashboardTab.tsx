@@ -9,8 +9,10 @@ import {
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { BarChart3 } from 'lucide-react';
 import ConsultForm from '../../../components/ConsultForm';
+import { useCurrency } from '../../../hooks/useCurrency';
 
 export default function DashboardTab() {
+  const { formatCurrency } = useCurrency();
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -158,7 +160,7 @@ export default function DashboardTab() {
                 <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 opacity-80" />
               </div>
               <p className="text-purple-100 text-[10px] md:text-xs mb-1">Monthly Income</p>
-              <p className="text-base md:text-xl font-bold leading-tight">${monthlyIncome.toFixed(2)}</p>
+              <p className="text-base md:text-xl font-bold leading-tight">{formatCurrency(monthlyIncome)}</p>
             </div>
 
             <div className="bg-gradient-to-br from-red-500 to-pink-600 rounded-xl md:rounded-2xl p-3 md:p-4 text-white shadow-xl">
@@ -169,7 +171,7 @@ export default function DashboardTab() {
                 <ArrowDownRight className="w-3 h-3 md:w-4 md:h-4 opacity-80" />
               </div>
               <p className="text-red-100 text-[10px] md:text-xs mb-1">Monthly Expenses</p>
-              <p className="text-base md:text-xl font-bold leading-tight">${monthlyExpenses.toFixed(2)}</p>
+              <p className="text-base md:text-xl font-bold leading-tight">{formatCurrency(monthlyExpenses)}</p>
             </div>
 
             <div className={`rounded-xl md:rounded-2xl p-3 md:p-4 text-white shadow-xl ${
@@ -188,7 +190,7 @@ export default function DashboardTab() {
                 )}
               </div>
               <p className="text-white/80 text-[10px] md:text-xs mb-1">Available Budget</p>
-              <p className="text-base md:text-xl font-bold leading-tight">${availableBudget.toFixed(2)}</p>
+              <p className="text-base md:text-xl font-bold leading-tight">{formatCurrency(availableBudget)}</p>
             </div>
 
             <div className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl md:rounded-2xl p-3 md:p-4 text-white shadow-xl">
@@ -199,7 +201,7 @@ export default function DashboardTab() {
                 <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 opacity-80" />
               </div>
               <p className="text-blue-100 text-[10px] md:text-xs mb-1">Total Savings</p>
-              <p className="text-base md:text-xl font-bold leading-tight">${totalSavings.toFixed(2)}</p>
+              <p className="text-base md:text-xl font-bold leading-tight">{formatCurrency(totalSavings)}</p>
             </div>
           </div>
         </div>
@@ -230,7 +232,7 @@ export default function DashboardTab() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} />
               </RechartsPieChart>
             </ResponsiveContainer>
           ) : (
@@ -251,7 +253,7 @@ export default function DashboardTab() {
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
               <XAxis dataKey="name" />
               <YAxis />
-              <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+              <Tooltip formatter={(value: number) => formatCurrency(value)} />
               <Bar dataKey="amount" radius={[8, 8, 0, 0]}>
                 {monthlyData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
@@ -271,10 +273,10 @@ export default function DashboardTab() {
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Total Debt</p>
-              <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">${totalDebt.toFixed(2)}</p>
+              <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(totalDebt)}</p>
             </div>
           </div>
-          <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Monthly Payments: ${monthlyDebtPayments.toFixed(2)}</p>
+          <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Monthly Payments: {formatCurrency(monthlyDebtPayments)}</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
@@ -284,7 +286,7 @@ export default function DashboardTab() {
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Debt Payments</p>
-              <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">${monthlyDebtPayments.toFixed(2)}</p>
+              <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(monthlyDebtPayments)}</p>
             </div>
           </div>
           <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Active Debts: {debts.length}</p>
@@ -303,7 +305,7 @@ export default function DashboardTab() {
                     <p className="font-medium text-gray-900 dark:text-white">{expense.description}</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">{format(expense.date, 'MMM dd, yyyy')}</p>
                   </div>
-                  <p className="text-lg font-bold text-red-600 dark:text-red-400">-${expense.amount.toFixed(2)}</p>
+                  <p className="text-lg font-bold text-red-600 dark:text-red-400">-{formatCurrency(expense.amount)}</p>
                 </div>
               ))}
             </div>
@@ -320,10 +322,10 @@ export default function DashboardTab() {
                 <div key={debt.id} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-medium text-gray-900 dark:text-white">{debt.creditor}</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">${debt.remainingAmount.toFixed(2)}</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(debt.remainingAmount)}</p>
                   </div>
                   <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                    <span>Min: ${debt.minimumPayment.toFixed(2)}</span>
+                    <span>Min: {formatCurrency(debt.minimumPayment)}</span>
                     <span>Due: Day {debt.dueDate}</span>
                   </div>
                 </div>

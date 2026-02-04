@@ -5,6 +5,7 @@ import { User } from '../types/user';
 import { Income, Expense, Debt, SavingsGoal } from '../types';
 import { format } from 'date-fns';
 import { X, User as UserIcon, DollarSign, CreditCard, Target, Wallet } from 'lucide-react';
+import { useCurrency } from '../hooks/useCurrency';
 
 interface UserDetailsViewProps {
   userId: string;
@@ -12,6 +13,7 @@ interface UserDetailsViewProps {
 }
 
 export default function UserDetailsView({ userId, onClose }: UserDetailsViewProps) {
+  const { formatCurrency } = useCurrency();
   const [user, setUser] = useState<User | null>(null);
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -198,21 +200,21 @@ export default function UserDetailsView({ userId, onClose }: UserDetailsViewProp
                   <Wallet className="w-5 h-5 text-red-600 dark:text-red-400" />
                   <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Expenses</span>
                 </div>
-                <p className="text-2xl font-bold text-red-700 dark:text-red-300">${totalExpenses.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-red-700 dark:text-red-300">{formatCurrency(totalExpenses)}</p>
               </div>
               <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4 border border-orange-200 dark:border-orange-800">
                 <div className="flex items-center space-x-2 mb-2">
                   <CreditCard className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                   <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Debts</span>
                 </div>
-                <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">${totalDebts.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">{formatCurrency(totalDebts)}</p>
               </div>
               <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
                 <div className="flex items-center space-x-2 mb-2">
                   <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Savings</span>
                 </div>
-                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">${totalSavings.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{formatCurrency(totalSavings)}</p>
               </div>
             </div>
 
@@ -225,7 +227,7 @@ export default function UserDetailsView({ userId, onClose }: UserDetailsViewProp
                     <div key={income.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-900 dark:text-white">{income.source}</span>
-                        <span className="text-sm font-semibold text-green-600 dark:text-green-400">${income.amount.toFixed(2)}</span>
+                        <span className="text-sm font-semibold text-green-600 dark:text-green-400">{formatCurrency(income.amount)}</span>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{format(income.date, 'MMM dd, yyyy')}</p>
                     </div>
@@ -239,7 +241,7 @@ export default function UserDetailsView({ userId, onClose }: UserDetailsViewProp
                     <div key={expense.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-900 dark:text-white">{expense.description}</span>
-                        <span className="text-sm font-semibold text-red-600 dark:text-red-400">${expense.amount.toFixed(2)}</span>
+                        <span className="text-sm font-semibold text-red-600 dark:text-red-400">{formatCurrency(expense.amount)}</span>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{format(expense.date, 'MMM dd, yyyy')}</p>
                     </div>

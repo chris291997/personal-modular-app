@@ -40,7 +40,7 @@ export const checkDebtPayments = (debts: Debt[]): string[] => {
     // Alert 3 days before due date (dueDate is day of month, 1-31)
     if (debt.dueDate >= dayOfMonth && debt.dueDate <= dayOfMonth + 3) {
       alerts.push(
-        `Debt payment due soon: ${debt.creditor} - $${debt.minimumPayment.toFixed(2)} due on day ${debt.dueDate}`
+        `Debt payment due soon: ${debt.creditor} - ${debt.minimumPayment.toFixed(2)} due on day ${debt.dueDate}`
       );
     }
   });
@@ -61,7 +61,7 @@ export const checkRecurringExpenses = (expenses: Expense[]): string[] => {
 
       if (daysUntilDue >= 0 && daysUntilDue <= 3) {
         alerts.push(
-          `Recurring expense due: ${expense.description} - $${expense.amount.toFixed(2)} due ${format(expense.nextDueDate, 'MMM dd')}`
+          `Recurring expense due: ${expense.description} - ${expense.amount.toFixed(2)} due ${format(expense.nextDueDate, 'MMM dd')}`
         );
       }
     }

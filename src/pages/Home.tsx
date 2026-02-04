@@ -5,12 +5,14 @@ import { useEffect, useState } from 'react';
 import { getIncomes, getExpenses } from '../services/budgetService';
 import { getSavedTickets } from '../services/taskService';
 import ConsultForm from '../components/ConsultForm';
+import { useCurrency } from '../hooks/useCurrency';
 
 export default function Home() {
   const modules = getEnabledModules();
   const [totalBalance, setTotalBalance] = useState(0);
   const [activeTasks, setActiveTasks] = useState(0);
   const [savingsGoals] = useState(0);
+  const { formatCurrency } = useCurrency();
 
   useEffect(() => {
     // Calculate total balance
@@ -67,7 +69,7 @@ export default function Home() {
         <div className="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-xl md:rounded-2xl p-3 md:p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] cursor-pointer flex flex-col justify-between min-h-[120px] md:min-h-0">
           <div>
             <p className="text-purple-100 text-[10px] md:text-xs mb-1">Total Balance</p>
-            <p className="text-lg md:text-2xl font-bold text-white leading-tight">${totalBalance.toLocaleString()}</p>
+            <p className="text-lg md:text-2xl font-bold text-white leading-tight">{formatCurrency(totalBalance)}</p>
           </div>
           <div className="w-8 h-8 md:w-12 md:h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mt-2 md:mt-4">
             <TrendingUp className="w-4 h-4 md:w-6 md:h-6 text-white" />
@@ -128,7 +130,7 @@ export default function Home() {
             <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform">
               <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-white" />
             </div>
-            <p className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mb-0.5 md:mb-1 leading-tight">${totalBalance.toLocaleString()}</p>
+            <p className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mb-0.5 md:mb-1 leading-tight">{formatCurrency(totalBalance)}</p>
             <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400">Balance</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg md:rounded-xl p-3 md:p-4 shadow-md hover:shadow-xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform hover:scale-105 cursor-pointer group">

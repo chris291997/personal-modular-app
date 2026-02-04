@@ -3,6 +3,7 @@ import { getExpenses, addExpense, updateExpense, deleteExpense, getCategories, a
 import { Expense, ExpenseCategory } from '../../../types';
 import { format } from 'date-fns';
 import { Plus, Edit2, Trash2, Wallet, Tag } from 'lucide-react';
+import { useCurrency } from '../../../hooks/useCurrency';
 
 const COMMON_CATEGORIES = [
   'Food & Dining',
@@ -18,6 +19,7 @@ const COMMON_CATEGORIES = [
 ];
 
 export default function ExpensesTab() {
+  const { formatCurrency } = useCurrency();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -410,7 +412,7 @@ export default function ExpensesTab() {
                       {getCategoryName(expense.categoryId)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-red-600 dark:text-red-400">
-                      ${expense.amount.toFixed(2)}
+                      {formatCurrency(expense.amount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                       {expense.isRecurring ? (

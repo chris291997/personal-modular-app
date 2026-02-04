@@ -2,6 +2,7 @@ import { Module } from '../types';
 import BudgetModule from './budget/BudgetModule';
 import TaskModule from './task/TaskModule';
 import UserManagementModule from './user/UserManagementModule';
+import SiteSettingsModule from './settings/SiteSettingsModule';
 import { canAccessModule, getCurrentUser } from '../services/authService';
 
 export const allModules: Module[] = [
@@ -29,6 +30,14 @@ export const allModules: Module[] = [
     component: UserManagementModule,
     enabled: true,
   },
+  {
+    id: 'settings',
+    name: 'Site Settings',
+    icon: '⚙️',
+    path: '/settings',
+    component: SiteSettingsModule,
+    enabled: true,
+  },
 ];
 
 export const getModule = (id: string): Module | undefined => {
@@ -43,8 +52,8 @@ export const getEnabledModules = (): Module[] => {
 
   // Filter modules based on user access
   return allModules.filter(module => {
-    // User management is only for admins
-    if (module.id === 'users') {
+    // User management and site settings are only for admins
+    if (module.id === 'users' || module.id === 'settings') {
       return user.role === 'administrator';
     }
     // Check if user can access this module

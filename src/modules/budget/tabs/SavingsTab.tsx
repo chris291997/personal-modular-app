@@ -3,8 +3,10 @@ import { getSavingsGoals, addSavingsGoal, updateSavingsGoal, deleteSavingsGoal }
 import { SavingsGoal } from '../../../types';
 import { format } from 'date-fns';
 import { Plus, Edit2, Trash2, Target, DollarSign } from 'lucide-react';
+import { useCurrency } from '../../../hooks/useCurrency';
 
 export default function SavingsTab() {
+  const { formatCurrency } = useCurrency();
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -327,7 +329,7 @@ export default function SavingsTab() {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600 dark:text-gray-400">Target</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">${goal.targetAmount.toFixed(2)}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(goal.targetAmount)}</span>
                       </div>
                       <div className="mt-3">
                         <div className="flex items-center justify-between mb-1">
@@ -370,10 +372,10 @@ export default function SavingsTab() {
                           {goal.name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          ${goal.currentAmount.toFixed(2)}
+                          {formatCurrency(goal.currentAmount)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          ${goal.targetAmount.toFixed(2)}
+                          {formatCurrency(goal.targetAmount)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center space-x-2">

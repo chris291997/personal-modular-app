@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { calculateConsult } from '../services/budgetService';
 import { ConsultInput, ConsultResult } from '../types';
 import { HelpCircle, AlertTriangle, CheckCircle2, TrendingDown, DollarSign, Calendar } from 'lucide-react';
+import { useCurrency } from '../hooks/useCurrency';
 
 interface ConsultFormProps {
   compact?: boolean;
 }
 
 export default function ConsultForm({ compact = false }: ConsultFormProps) {
+  const { formatCurrency, formatCurrencyNoDecimals } = useCurrency();
   const [type, setType] = useState<'expense' | 'debt' | 'subscription'>('expense');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ConsultResult | null>(null);
@@ -266,7 +268,7 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
               <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2 border border-gray-200 dark:border-gray-600">
                 <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total</div>
                 <div className="text-sm font-bold text-gray-900 dark:text-white">
-                  ${result.totalCostOverTime.toFixed(0)}
+                  {formatCurrencyNoDecimals(result.totalCostOverTime)}
                 </div>
               </div>
               <div className={`rounded-lg p-2 border ${
@@ -280,7 +282,7 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
                     ? 'text-red-600 dark:text-red-400'
                     : 'text-gray-900 dark:text-white'
                 }`}>
-                  ${result.effectOnAvailableBudget.toFixed(0)}
+                  {formatCurrencyNoDecimals(result.effectOnAvailableBudget)}
                 </div>
               </div>
             </div>
@@ -524,7 +526,7 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
                   <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Monthly Payment Impact</div>
                 </div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                  ${result.monthlyPaymentImpact.toFixed(2)}
+                  {formatCurrency(result.monthlyPaymentImpact)}
                 </div>
                 <div className="text-xs text-gray-600 dark:text-gray-400">
                   This is how much will be deducted from your monthly budget
@@ -537,7 +539,7 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
                   <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Cost Over Time</div>
                 </div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                  ${result.totalCostOverTime.toFixed(2)}
+                  {formatCurrency(result.totalCostOverTime)}
                 </div>
                 <div className="text-xs text-gray-600 dark:text-gray-400">
                   Total amount you'll pay including interest (if applicable)
@@ -558,7 +560,7 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
                     ? 'text-red-600 dark:text-red-400'
                     : 'text-gray-900 dark:text-white'
                 }`}>
-                  ${result.effectOnAvailableBudget.toFixed(2)}
+                  {formatCurrency(result.effectOnAvailableBudget)}
                 </div>
                 <div className="text-xs text-gray-600 dark:text-gray-400">
                   Your remaining budget after this commitment

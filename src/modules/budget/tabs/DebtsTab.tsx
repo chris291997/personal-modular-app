@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { getDebts, addDebt, updateDebt, deleteDebt } from '../../../services/budgetService';
 import { Debt } from '../../../types';
 import { Plus, Edit2, Trash2, CreditCard } from 'lucide-react';
+import { useCurrency } from '../../../hooks/useCurrency';
 
 export default function DebtsTab() {
+  const { formatCurrency } = useCurrency();
   const [debts, setDebts] = useState<Debt[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -392,7 +394,7 @@ export default function DebtsTab() {
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Day {debt.dueDate}
                         {debt.interestRate && ` • ${debt.interestRate.toFixed(2)}%`}
-                        {debt.downPayment && ` • Down: $${debt.downPayment.toFixed(2)}`}
+                        {debt.downPayment && ` • Down: ${formatCurrency(debt.downPayment)}`}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">

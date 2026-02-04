@@ -12,11 +12,18 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { Income, Expense, Debt, SavingsGoal, ExpenseCategory, ConsultInput, ConsultResult } from '../types';
+import { getCurrentUser } from './authService';
 
 // Income
 export const addIncome = async (income: Omit<Income, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('User must be authenticated to add income');
+  }
+
   const now = new Date();
   const incomeData: any = {
+    userId: user.id,
     amount: income.amount,
     source: income.source,
     frequency: income.frequency,
@@ -35,11 +42,21 @@ export const addIncome = async (income: Omit<Income, 'id' | 'createdAt' | 'updat
 };
 
 export const getIncomes = async (startDate?: Date, endDate?: Date): Promise<Income[]> => {
-  let q = query(collection(db, 'incomes'), orderBy('date', 'desc'));
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('User must be authenticated to get incomes');
+  }
+
+  let q = query(
+    collection(db, 'incomes'),
+    where('userId', '==', user.id),
+    orderBy('date', 'desc')
+  );
   
   if (startDate && endDate) {
     q = query(
       collection(db, 'incomes'),
+      where('userId', '==', user.id),
       where('date', '>=', Timestamp.fromDate(startDate)),
       where('date', '<=', Timestamp.fromDate(endDate)),
       orderBy('date', 'desc')
@@ -57,7 +74,19 @@ export const getIncomes = async (startDate?: Date, endDate?: Date): Promise<Inco
 };
 
 export const updateIncome = async (id: string, updates: Partial<Income>): Promise<void> => {
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('User must be authenticated to update income');
+  }
+
+  // Verify the income belongs to the user
   const incomeRef = doc(db, 'incomes', id);
+  const incomeSnap = await getDocs(query(collection(db, 'incomes'), where('userId', '==', user.id)));
+  const incomeDoc = incomeSnap.docs.find(d => d.id === id);
+  if (!incomeDoc) {
+    throw new Error('Income not found or access denied');
+  }
+
   const updateData: any = {
     updatedAt: Timestamp.fromDate(new Date()),
   };
@@ -73,13 +102,31 @@ export const updateIncome = async (id: string, updates: Partial<Income>): Promis
 };
 
 export const deleteIncome = async (id: string): Promise<void> => {
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('User must be authenticated to delete income');
+  }
+
+  // Verify the income belongs to the user
+  const incomeSnap = await getDocs(query(collection(db, 'incomes'), where('userId', '==', user.id)));
+  const incomeDoc = incomeSnap.docs.find(d => d.id === id);
+  if (!incomeDoc) {
+    throw new Error('Income not found or access denied');
+  }
+
   await deleteDoc(doc(db, 'incomes', id));
 };
 
 // Expenses
 export const addExpense = async (expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('User must be authenticated to add expense');
+  }
+
   const now = new Date();
   const expenseData: any = {
+    userId: user.id,
     amount: expense.amount,
     categoryId: expense.categoryId,
     description: expense.description,
@@ -104,11 +151,21 @@ export const addExpense = async (expense: Omit<Expense, 'id' | 'createdAt' | 'up
 };
 
 export const getExpenses = async (startDate?: Date, endDate?: Date): Promise<Expense[]> => {
-  let q = query(collection(db, 'expenses'), orderBy('date', 'desc'));
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('User must be authenticated to get expenses');
+  }
+
+  let q = query(
+    collection(db, 'expenses'),
+    where('userId', '==', user.id),
+    orderBy('date', 'desc')
+  );
   
   if (startDate && endDate) {
     q = query(
       collection(db, 'expenses'),
+      where('userId', '==', user.id),
       where('date', '>=', Timestamp.fromDate(startDate)),
       where('date', '<=', Timestamp.fromDate(endDate)),
       orderBy('date', 'desc')
@@ -149,9 +206,16 @@ export const deleteExpense = async (id: string): Promise<void> => {
   await deleteDoc(doc(db, 'expenses', id));
 };
 
-// Categories
+// Categories (user-specific)
 export const getCategories = async (): Promise<ExpenseCategory[]> => {
-  const snapshot = await getDocs(collection(db, 'categories'));
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('User must be authenticated to get categories');
+  }
+
+  const snapshot = await getDocs(
+    query(collection(db, 'categories'), where('userId', '==', user.id))
+  );
   return snapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data(),
@@ -159,14 +223,29 @@ export const getCategories = async (): Promise<ExpenseCategory[]> => {
 };
 
 export const addCategory = async (category: Omit<ExpenseCategory, 'id'>): Promise<string> => {
-  const docRef = await addDoc(collection(db, 'categories'), category);
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('User must be authenticated to add category');
+  }
+
+  const categoryData = {
+    ...category,
+    userId: user.id,
+  };
+  const docRef = await addDoc(collection(db, 'categories'), categoryData);
   return docRef.id;
 };
 
 // Debts
 export const addDebt = async (debt: Omit<Debt, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('User must be authenticated to add debt');
+  }
+
   const now = new Date();
   const debtData: any = {
+    userId: user.id,
     type: debt.type,
     creditor: debt.creditor,
     totalAmount: debt.totalAmount,
@@ -198,7 +277,18 @@ export const addDebt = async (debt: Omit<Debt, 'id' | 'createdAt' | 'updatedAt'>
 };
 
 export const getDebts = async (): Promise<Debt[]> => {
-  const snapshot = await getDocs(query(collection(db, 'debts'), orderBy('createdAt', 'desc')));
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('User must be authenticated to get debts');
+  }
+
+  const snapshot = await getDocs(
+    query(
+      collection(db, 'debts'),
+      where('userId', '==', user.id),
+      orderBy('createdAt', 'desc')
+    )
+  );
   return snapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data(),
@@ -208,6 +298,18 @@ export const getDebts = async (): Promise<Debt[]> => {
 };
 
 export const updateDebt = async (id: string, updates: Partial<Debt>): Promise<void> => {
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('User must be authenticated to update debt');
+  }
+
+  // Verify the debt belongs to the user
+  const debtSnap = await getDocs(query(collection(db, 'debts'), where('userId', '==', user.id)));
+  const debtDoc = debtSnap.docs.find(d => d.id === id);
+  if (!debtDoc) {
+    throw new Error('Debt not found or access denied');
+  }
+
   const debtRef = doc(db, 'debts', id);
   const updateData: any = {
     updatedAt: Timestamp.fromDate(new Date()),
@@ -230,13 +332,31 @@ export const updateDebt = async (id: string, updates: Partial<Debt>): Promise<vo
 };
 
 export const deleteDebt = async (id: string): Promise<void> => {
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('User must be authenticated to delete debt');
+  }
+
+  // Verify the debt belongs to the user
+  const debtSnap = await getDocs(query(collection(db, 'debts'), where('userId', '==', user.id)));
+  const debtDoc = debtSnap.docs.find(d => d.id === id);
+  if (!debtDoc) {
+    throw new Error('Debt not found or access denied');
+  }
+
   await deleteDoc(doc(db, 'debts', id));
 };
 
 // Savings Goals
 export const addSavingsGoal = async (goal: Omit<SavingsGoal, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('User must be authenticated to add savings goal');
+  }
+
   const now = new Date();
   const goalData: any = {
+    userId: user.id,
     name: goal.name,
     targetAmount: goal.targetAmount,
     currentAmount: goal.currentAmount,
@@ -256,7 +376,18 @@ export const addSavingsGoal = async (goal: Omit<SavingsGoal, 'id' | 'createdAt' 
 };
 
 export const getSavingsGoals = async (): Promise<SavingsGoal[]> => {
-  const snapshot = await getDocs(query(collection(db, 'savingsGoals'), orderBy('createdAt', 'desc')));
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('User must be authenticated to get savings goals');
+  }
+
+  const snapshot = await getDocs(
+    query(
+      collection(db, 'savingsGoals'),
+      where('userId', '==', user.id),
+      orderBy('createdAt', 'desc')
+    )
+  );
   return snapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data(),
@@ -267,6 +398,18 @@ export const getSavingsGoals = async (): Promise<SavingsGoal[]> => {
 };
 
 export const updateSavingsGoal = async (id: string, updates: Partial<SavingsGoal>): Promise<void> => {
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('User must be authenticated to update savings goal');
+  }
+
+  // Verify the goal belongs to the user
+  const goalSnap = await getDocs(query(collection(db, 'savingsGoals'), where('userId', '==', user.id)));
+  const goalDoc = goalSnap.docs.find(d => d.id === id);
+  if (!goalDoc) {
+    throw new Error('Savings goal not found or access denied');
+  }
+
   const goalRef = doc(db, 'savingsGoals', id);
   const updateData: any = {
     updatedAt: Timestamp.fromDate(new Date()),
@@ -285,6 +428,18 @@ export const updateSavingsGoal = async (id: string, updates: Partial<SavingsGoal
 };
 
 export const deleteSavingsGoal = async (id: string): Promise<void> => {
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('User must be authenticated to delete savings goal');
+  }
+
+  // Verify the goal belongs to the user
+  const goalSnap = await getDocs(query(collection(db, 'savingsGoals'), where('userId', '==', user.id)));
+  const goalDoc = goalSnap.docs.find(d => d.id === id);
+  if (!goalDoc) {
+    throw new Error('Savings goal not found or access denied');
+  }
+
   await deleteDoc(doc(db, 'savingsGoals', id));
 };
 

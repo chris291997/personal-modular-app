@@ -3,8 +3,10 @@ import { getIncomes, addIncome, updateIncome, deleteIncome } from '../../../serv
 import { Income } from '../../../types';
 import { format } from 'date-fns';
 import { Plus, Edit2, Trash2, TrendingUp } from 'lucide-react';
+import { useCurrency } from '../../../hooks/useCurrency';
 
 export default function IncomeTab() {
+  const { formatCurrency } = useCurrency();
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -252,7 +254,7 @@ export default function IncomeTab() {
                       {income.source}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600 dark:text-green-400">
-                      ${income.amount.toFixed(2)}
+                      {formatCurrency(income.amount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 capitalize">
                       {income.frequency}
