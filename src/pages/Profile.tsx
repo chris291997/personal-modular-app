@@ -54,11 +54,21 @@ export default function Profile() {
       const updatedUser = getCurrentUser();
       if (updatedUser) {
         setUser(updatedUser);
+        // Update form data with the updated user data
+        setFormData({
+          name: updatedUser.name || '',
+          profilePicture: updatedUser.profilePicture || '',
+          gender: updatedUser.gender || '',
+          birthdate: updatedUser.birthdate,
+          phone: updatedUser.phone || '',
+          address: updatedUser.address || '',
+        });
       }
       alert('Profile updated successfully!');
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      alert(`Failed to update profile: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert(`Failed to update profile: ${errorMessage || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }

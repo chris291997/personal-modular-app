@@ -12,6 +12,7 @@ export default function TaskModule() {
   const { tickets, loading, loadTickets, addTicket, deleteTicket } = useTaskStore();
   const [error, setError] = useState<string | null>(null);
   const [showManualForm, setShowManualForm] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
   
   const [filter, setFilter] = useState<TaskFilter>({
     startDate: subMonths(new Date(), 1),
@@ -23,7 +24,7 @@ export default function TaskModule() {
 
   const handleSearch = async () => {
     try {
-      setLoading(true);
+      setSearchLoading(true);
       setError(null);
       const apiResults = await searchTickets(filter);
       
@@ -56,7 +57,7 @@ export default function TaskModule() {
         console.error('Error loading saved tickets:', loadError);
       }
     } finally {
-      setLoading(false);
+      setSearchLoading(false);
     }
   };
 
@@ -131,7 +132,7 @@ export default function TaskModule() {
         </div>
       )}
 
-      {loading ? (
+      {(loading || searchLoading) ? (
         <div className="loading">Loading tickets...</div>
       ) : (
         <TicketList tickets={tickets} filter={filter} onDelete={handleDeleteTicket} />

@@ -42,6 +42,8 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
           createdAt: userData.createdAt?.toDate() || new Date(),
           updatedAt: userData.updatedAt?.toDate() || new Date(),
           birthdate: userData.birthdate?.toDate(),
+          // Ensure enabledModules is always an array (default to empty array for members)
+          enabledModules: Array.isArray(userData.enabledModules) ? userData.enabledModules : [],
         } as User;
         notifyAuthStateListeners(user);
       } else {
@@ -206,6 +208,15 @@ export const isAdmin = (user: User | null): boolean => {
 // Check if user can access module
 export const canAccessModule = (user: User | null, moduleId: string): boolean => {
   if (!user) return false;
-  if (isAdmin(user)) return true; // Admin can access all modules
+  
+  // Administrators can access all modules
+  if (isAdmin(user)) return true;
+  
+  // Members can only access modules explicitly in their enabledModules array
+  // If enabledModules is undefined, null, or empty, they can't access any modules
+  if (!user.enabledModules || !Array.isArray(user.enabledModules) || user.enabledModules.length === 0) {
+    return false;
+  }
+  
   return user.enabledModules.includes(moduleId);
 };

@@ -1,5 +1,9 @@
 import ConsultForm from '../../../components/ConsultForm';
 
 export default function ConsultTab() {
-  return <ConsultForm />;
+  return (
+    <div className="w-full">
+      <ConsultForm />
+    </div>
+  );
 }

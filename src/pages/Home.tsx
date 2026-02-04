@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { getEnabledModules } from '../modules';
-import { Wallet, CheckSquare, TrendingUp, BarChart3, ArrowRight, HelpCircle } from 'lucide-react';
+import { Wallet, CheckSquare, TrendingUp, BarChart3, ArrowRight, HelpCircle, Users, Settings as SettingsIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import ConsultForm from '../components/ConsultForm';
 import { useCurrency } from '../hooks/useCurrency';
@@ -72,28 +72,45 @@ export default function Home() {
         <div className="bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl p-3 md:p-4 shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col">
           <h2 className="text-[10px] md:text-sm font-semibold text-gray-900 dark:text-white mb-2 md:mb-3">MODULES</h2>
           <div className="grid grid-cols-2 gap-2 md:gap-3">
-            {modules.map(module => (
-              <Link
-                key={module.id}
-                to={module.path}
-                className="group flex flex-col items-center justify-center hover:opacity-80 transition-opacity py-1 md:py-2 min-h-[60px] md:min-h-0"
-              >
-                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg bg-gradient-to-br ${
-                  module.id === 'budget' 
-                    ? 'from-purple-500 to-indigo-600' 
-                    : 'from-blue-500 to-cyan-600'
-                } flex items-center justify-center shadow-md mb-1 group-hover:scale-110 transition-transform duration-300`}>
-                  {module.id === 'budget' ? (
-                    <Wallet className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                  ) : (
-                    <CheckSquare className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                  )}
-                </div>
-                <span className="text-[10px] md:text-xs font-medium text-gray-900 dark:text-white text-center leading-tight">
-                  {module.name}
-                </span>
-              </Link>
-            ))}
+            {modules.map(module => {
+              const getModuleIcon = (moduleId: string) => {
+                switch (moduleId) {
+                  case 'budget':
+                    return <Wallet className="w-4 h-4 md:w-5 md:h-5 text-white" />;
+                  case 'task':
+                    return <CheckSquare className="w-4 h-4 md:w-5 md:h-5 text-white" />;
+                  case 'users':
+                    return <Users className="w-4 h-4 md:w-5 md:h-5 text-white" />;
+                  case 'settings':
+                    return <SettingsIcon className="w-4 h-4 md:w-5 md:h-5 text-white" />;
+                  default:
+                    return null;
+                }
+              };
+
+              return (
+                <Link
+                  key={module.id}
+                  to={module.path}
+                  className="group flex flex-col items-center justify-center hover:opacity-80 transition-opacity py-1 md:py-2 min-h-[60px] md:min-h-0"
+                >
+                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg bg-gradient-to-br ${
+                    module.id === 'budget' 
+                      ? 'from-purple-500 to-indigo-600' 
+                      : module.id === 'task'
+                      ? 'from-blue-500 to-cyan-600'
+                      : module.id === 'users'
+                      ? 'from-orange-500 to-red-600'
+                      : 'from-gray-500 to-gray-700'
+                  } flex items-center justify-center shadow-md mb-1 group-hover:scale-110 transition-transform duration-300`}>
+                    {getModuleIcon(module.id)}
+                  </div>
+                  <span className="text-[10px] md:text-xs font-medium text-gray-900 dark:text-white text-center leading-tight">
+                    {module.name}
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -66,13 +66,18 @@ export const getAllUsers = async (): Promise<User[]> => {
 
   try {
     const snapshot = await getDocs(collection(db, 'users'));
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-      birthdate: doc.data().birthdate?.toDate(),
-    })) as User[];
+    return snapshot.docs.map(doc => {
+      const userData = doc.data();
+      return {
+        id: doc.id,
+        ...userData,
+        createdAt: userData.createdAt?.toDate() || new Date(),
+        updatedAt: userData.updatedAt?.toDate() || new Date(),
+        birthdate: userData.birthdate?.toDate(),
+        // Ensure enabledModules is always an array (default to empty array for members)
+        enabledModules: Array.isArray(userData.enabledModules) ? userData.enabledModules : [],
+      } as User;
+    });
   } catch (error) {
     console.error('Error fetching users:', error);
     throw new Error('Failed to fetch users');
@@ -104,6 +109,8 @@ export const getUserById = async (userId: string): Promise<User | null> => {
       createdAt: userData.createdAt?.toDate() || new Date(),
       updatedAt: userData.updatedAt?.toDate() || new Date(),
       birthdate: userData.birthdate?.toDate(),
+      // Ensure enabledModules is always an array (default to empty array for members)
+      enabledModules: Array.isArray(userData.enabledModules) ? userData.enabledModules : [],
     } as User;
   } catch (error) {
     console.error('Error fetching user:', error);
@@ -134,17 +141,45 @@ export const updateUser = async (
   }
 
   try {
+    // Check if user document exists
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+
     const userRef = doc(db, 'users', userId);
     const updateData: any = {
       updatedAt: Timestamp.fromDate(new Date()),
     };
 
+    // Handle password update via Admin API if provided
+    if (updates.password && updates.password.trim() !== '') {
+      if (!isAdmin(currentUser)) {
+        throw new Error('Only administrators can update passwords');
+      }
+      
+      const apiUrl = import.meta.env.VITE_ADMIN_API_URL || '/api/admin-users';
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'resetPassword',
+          userId: userId,
+          newPassword: updates.password,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || errorData.message || 'Failed to update password');
+      }
+    }
+
     // Only include defined fields
     if (updates.name !== undefined) updateData.name = updates.name;
     if (updates.email !== undefined) updateData.email = updates.email;
-    // Password updates should go through Admin API for hashing
-  // For now, we'll skip password updates in this function
-  // Password should be updated via password reset or Admin API
     if (updates.role !== undefined && isAdmin(currentUser)) updateData.role = updates.role;
     if (updates.profilePicture !== undefined) updateData.profilePicture = updates.profilePicture;
     if (updates.gender !== undefined) updateData.gender = updates.gender;
@@ -161,9 +196,10 @@ export const updateUser = async (
     }
 
     await updateDoc(userRef, updateData);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating user:', error);
-    throw new Error('Failed to update user');
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(errorMessage || 'Failed to update user');
   }
 };
 
@@ -182,6 +218,12 @@ export const updateUserProfile = async (
   }
 
   try {
+    // Check if user document exists
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+
     const userRef = doc(db, 'users', userId);
     const updateData: any = {
       updatedAt: Timestamp.fromDate(new Date()),
@@ -197,9 +239,19 @@ export const updateUserProfile = async (
     if (profile.address !== undefined) updateData.address = profile.address;
 
     await updateDoc(userRef, updateData);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating profile:', error);
-    throw new Error('Failed to update profile');
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // Provide more specific error messages
+    if (errorMessage.includes('permission-denied') || errorMessage.includes('Permission denied')) {
+      throw new Error('You do not have permission to update this profile');
+    }
+    if (errorMessage.includes('not-found') || errorMessage.includes('not found')) {
+      throw new Error('User not found');
+    }
+    
+    throw new Error(errorMessage || 'Failed to update profile');
   }
 };
 
@@ -210,7 +262,22 @@ export const deleteUserAccount = async (userId: string): Promise<void> => {
     throw new Error('Only administrators can delete users');
   }
 
+  if (!userId || userId.trim() === '') {
+    throw new Error('User ID is required');
+  }
+
+  // Prevent self-deletion
+  if (currentUser.id === userId) {
+    throw new Error('You cannot delete your own account');
+  }
+
   try {
+    // Check if user document exists before attempting deletion
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+
     // Use Admin API endpoint for secure user deletion
     const apiUrl = import.meta.env.VITE_ADMIN_API_URL || '/api/admin-users';
     
@@ -227,11 +294,22 @@ export const deleteUserAccount = async (userId: string): Promise<void> => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: response.statusText }));
-      throw new Error(errorData.error || errorData.message || 'Failed to delete user');
+      const errorMessage = errorData.error || errorData.message || 'Failed to delete user';
+      throw new Error(errorMessage);
     }
   } catch (error: any) {
     console.error('Error deleting user:', error);
-    throw new Error(error.message || 'Failed to delete user');
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // Provide more specific error messages
+    if (errorMessage.includes('not-found') || errorMessage.includes('not found')) {
+      throw new Error('User not found');
+    }
+    if (errorMessage.includes('permission-denied') || errorMessage.includes('Permission denied')) {
+      throw new Error('You do not have permission to delete this user');
+    }
+    
+    throw new Error(errorMessage || 'Failed to delete user');
   }
 };
 

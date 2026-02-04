@@ -114,7 +114,7 @@ export default async function handler(
   }
 
   try {
-    const { action, userId, userData } = request.body;
+    const { action, userId, userData, newPassword } = request.body;
 
     if (!action) {
       return response.status(400).json({ error: 'Missing action parameter' });
@@ -125,12 +125,14 @@ export default async function handler(
         return await handleCreateUser(request, response, userData);
       case 'deleteUser':
         return await handleDeleteUser(request, response, userId);
+      case 'updatePassword':
+        return await handleUpdatePassword(request, response, userId, newPassword);
       case 'resetPassword':
         return await handleResetPassword(request, response, userData);
       case 'sendVerificationEmail':
         return await handleSendVerificationEmail(request, response, userData);
       default:
-        return response.status(400).json({ error: 'Invalid action', validActions: ['createUser', 'deleteUser', 'resetPassword', 'sendVerificationEmail'] });
+        return response.status(400).json({ error: 'Invalid action', validActions: ['createUser', 'deleteUser', 'updatePassword', 'resetPassword', 'sendVerificationEmail'] });
     }
   } catch (error) {
     console.error('Admin API error:', error);
@@ -336,6 +338,62 @@ async function handleDeleteUser(
     console.error('Delete user error:', error);
     return response.status(400).json({
       error: 'Failed to delete user',
+      message: getErrorMessage(error),
+    });
+  }
+}
+
+async function handleUpdatePassword(
+  request: VercelRequest,
+  response: VercelResponse,
+  userId: string | undefined,
+  newPassword: string | undefined
+) {
+  try {
+    if (!auth) {
+      throw new Error('Firebase Auth is not initialized');
+    }
+
+    if (!userId) {
+      return response.status(400).json({ error: 'User ID required' });
+    }
+
+    if (!newPassword || newPassword.trim() === '') {
+      return response.status(400).json({ error: 'New password required' });
+    }
+
+    if (newPassword.length < 6) {
+      return response.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+
+    // Update password using Firebase Admin SDK
+    await auth.updateUser(userId, {
+      password: newPassword,
+    });
+
+    return response.status(200).json({
+      success: true,
+      message: 'Password updated successfully',
+    });
+  } catch (error: unknown) {
+    console.error('Update password error:', error);
+    const firebaseError = error as { code?: string };
+    
+    if (firebaseError.code === 'auth/user-not-found') {
+      return response.status(404).json({
+        error: 'User not found',
+        message: getErrorMessage(error),
+      });
+    }
+    if (firebaseError.code === 'auth/weak-password') {
+      return response.status(400).json({
+        error: 'Password is too weak',
+        message: getErrorMessage(error),
+      });
+    }
+
+    return response.status(400).json({
+      error: 'Failed to update password',
       message: getErrorMessage(error),
     });
   }

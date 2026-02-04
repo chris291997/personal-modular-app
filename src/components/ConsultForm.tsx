@@ -74,9 +74,9 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
 
   if (compact) {
     return (
-      <div className="space-y-4">
+      <div className="w-full space-y-3 md:space-y-4">
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Type *
@@ -311,7 +311,7 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
 
   // Full form (for ConsultTab)
   return (
-    <div className="space-y-6 pb-20 md:pb-8">
+    <div className="w-full space-y-4 md:space-y-6 pb-20 md:pb-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">

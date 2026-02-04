@@ -133,7 +133,7 @@ export default function SavingsTab() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6 pb-20 md:pb-8">
+    <div className="w-full space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
         <div className="flex items-center space-x-2 md:space-x-3">
           <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg md:rounded-xl flex items-center justify-center">
@@ -154,8 +154,8 @@ export default function SavingsTab() {
       </div>
 
       {showForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="w-full bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl p-3 md:p-4 lg:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Goal Name *
@@ -170,7 +170,7 @@ export default function SavingsTab() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Target Amount *
@@ -246,7 +246,7 @@ export default function SavingsTab() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="w-full bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         {goals.length === 0 ? (
           <div className="p-12 text-center">
             <Target className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -255,12 +255,12 @@ export default function SavingsTab() {
         ) : (
           <>
             {/* Mobile Card View */}
-            <div className="md:hidden p-4 space-y-4">
+            <div className="md:hidden p-2 md:p-3 space-y-3 md:space-y-4">
               {goals.map(goal => {
                 const progress = calculateProgress(goal);
                 const isContributing = contributingGoalId === goal.id;
                 return (
-                  <div key={goal.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
+                  <div key={goal.id} className="w-full bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 md:p-4 border border-gray-200 dark:border-gray-600">
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{goal.name}</h3>
