@@ -14,6 +14,35 @@ if (shouldBeDark) {
   document.documentElement.classList.remove('dark');
 }
 
+// Force service worker update and unregister old ones that might be caching API calls
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => {
+      // Unregister old service workers that might have cached API routes
+      registration.unregister().then((success) => {
+        if (success) {
+          console.log('Old service worker unregistered');
+        }
+      });
+    });
+  });
+
+  // Register new service worker
+  window.addEventListener('load', () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('Service Worker registered:', registration);
+          // Force update
+          registration.update();
+        })
+        .catch((error) => {
+          console.log('Service Worker registration failed:', error);
+        });
+    }
+  });
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />

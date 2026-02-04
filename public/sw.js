@@ -2,8 +2,8 @@
 // The self.__WB_MANIFEST will be replaced during build
 
 import { precacheAndRoute } from 'workbox-precaching';
-import { registerRoute } from 'workbox-routing';
-import { CacheFirst, NetworkFirst } from 'workbox-strategies';
+import { registerRoute, setCatchHandler } from 'workbox-routing';
+import { CacheFirst, NetworkFirst, NetworkOnly } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 
 // Precache all assets
@@ -24,19 +24,26 @@ registerRoute(
   })
 );
 
-// Network-first for API calls
-registerRoute(
-  ({ url }) => url.pathname.startsWith('/api/'),
-  new NetworkFirst({
-    cacheName: 'api-cache',
-    plugins: [
-      new ExpirationPlugin({
-        maxEntries: 50,
-        maxAgeSeconds: 60 * 5,
-      }),
-    ],
-  })
-);
+// Completely bypass service worker for API routes
+// Use fetch event listener to intercept and bypass API calls
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // If it's an API route, fetch directly without service worker caching
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return new Response(JSON.stringify({ error: 'Network error' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      })
+    );
+    return; // Don't process further
+  }
+  
+  // For all other routes, let Workbox handle them
+});
 
 // Skip waiting on update
 self.addEventListener('message', (event) => {
