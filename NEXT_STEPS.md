@@ -22,7 +22,7 @@ Create `.env.local` in your project root:
 
 ```bash
 VITE_JIRA_BASE_URL=https://datafiedusa.atlassian.net
-VITE_JIRA_EMAIL=cbenosa@datafiesusa.com
+VITE_JIRA_EMAIL=cbenosa@datafiedusa.com
 VITE_JIRA_API_TOKEN=ATATT3xFfGF0HrRFt5s9uGOpwjdUqz9bSDqSjtnOMAhEl0NUIjnUqNFmeC2R9GpTs88a10TEKq-TSW3N_1smCxWFUH3aloPeRmMQWAMTp0ZsS1T17jdrjgBSzTxGh3TeWBBMEueg1Qbv-9mNdr5VCfc3J-j48eWxgM-T0fU-ztRmHjYo8BywieI=F2C9F376
 ```
 
@@ -71,7 +71,7 @@ You'll get a URL like: `https://your-app.vercel.app`
 
    **Variable 2:**
    - Name: `VITE_JIRA_EMAIL`
-   - Value: `cbenosa@datafiesusa.com`
+   - Value: `cbenosa@datafiedusa.com`
    - Environments: ✅ Production ✅ Preview ✅ Development
 
    **Variable 3:**
@@ -87,7 +87,7 @@ You'll get a URL like: `https://your-app.vercel.app`
 If you want automatic Jira ticket fetching:
 
 1. In Vercel dashboard, also add these for the serverless function:
-   - `JIRA_EMAIL` = `cbenosa@datafiesusa.com`
+   - `JIRA_EMAIL` = `cbenosa@datafiedusa.com`
    - `JIRA_API_TOKEN` = ``
 
 2. Update `src/services/jiraService.ts`:

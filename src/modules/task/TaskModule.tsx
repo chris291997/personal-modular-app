@@ -144,7 +144,7 @@ export default function TaskModule() {
       {loading ? (
         <div className="loading">Loading tickets...</div>
       ) : (
-        <TicketList tickets={tickets} onDelete={handleDeleteTicket} />
+        <TicketList tickets={tickets} filter={filter} onDelete={handleDeleteTicket} />
       )}
     </div>
   );

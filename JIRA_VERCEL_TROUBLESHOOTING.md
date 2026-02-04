@@ -13,7 +13,7 @@
 1. Go to your Vercel project dashboard
 2. Navigate to **Settings** → **Environment Variables**
 3. Make sure you have these variables set:
-   - `JIRA_EMAIL` = `cbenosa@datafiesusa.com` (or your Jira email)
+   - `JIRA_EMAIL` = `cbenosa@datafiedusa.com` (or your Jira email)
    - `JIRA_API_TOKEN` = Your API token from https://id.atlassian.com/manage-profile/security/api-tokens
 4. **Important**: Select **Production, Preview, and Development** for both variables
 5. Click **Save**

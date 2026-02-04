@@ -73,7 +73,7 @@ The Task module currently uses manual entry due to CORS restrictions. You can en
 2. Settings → Environment Variables
 3. Add these two variables:
    - **Name:** `JIRA_EMAIL`
-     **Value:** `cbenosa@datafiesusa.com`
+     **Value:** `cbenosa@datafiedusa.com`
    - **Name:** `JIRA_API_TOKEN`
      **Value:** `your-api-token-here` (get from https://id.atlassian.com/manage-profile/security/api-tokens)
 4. Make sure to select **Production, Preview, and Development** for both variables

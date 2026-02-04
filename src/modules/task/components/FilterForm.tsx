@@ -21,7 +21,15 @@ export default function FilterForm({ filter, onFilterChange, onSearch }: FilterF
           <input
             type="date"
             value={format(filter.startDate, 'yyyy-MM-dd')}
-            onChange={(e) => handleChange({ startDate: new Date(e.target.value) })}
+            onChange={(e) => {
+              const dateValue = e.target.value;
+              if (dateValue) {
+                // Create date at local midnight to avoid timezone issues
+                const date = new Date(dateValue + 'T00:00:00');
+                handleChange({ startDate: date });
+              }
+            }}
+            className="date-input"
           />
         </div>
 
@@ -30,7 +38,15 @@ export default function FilterForm({ filter, onFilterChange, onSearch }: FilterF
           <input
             type="date"
             value={format(filter.endDate, 'yyyy-MM-dd')}
-            onChange={(e) => handleChange({ endDate: new Date(e.target.value) })}
+            onChange={(e) => {
+              const dateValue = e.target.value;
+              if (dateValue) {
+                // Create date at local midnight to avoid timezone issues
+                const date = new Date(dateValue + 'T00:00:00');
+                handleChange({ endDate: date });
+              }
+            }}
+            className="date-input"
           />
         </div>
       </div>

@@ -4,6 +4,22 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// Suppress Node.js deprecation warnings from dependencies
+// The warning comes from @vercel/node or its dependencies, not our code
+// Our code already uses the modern WHATWG URL API (new URL())
+if (typeof process !== 'undefined' && process.emitWarning) {
+  const originalEmitWarning = process.emitWarning;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (process as any).emitWarning = (warning: string | Error, ...args: any[]) => {
+    // Suppress DEP0169 (url.parse deprecation) warnings from dependencies
+    const code = args.find((arg): arg is string => typeof arg === 'string' && arg.startsWith('DEP'));
+    if (code === 'DEP0169' || (typeof warning === 'string' && warning.includes('url.parse'))) {
+      return;
+    }
+    return originalEmitWarning.apply(process, [warning, ...args] as Parameters<typeof process.emitWarning>);
+  };
+}
+
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
@@ -12,6 +28,12 @@ function getErrorMessage(err: unknown): string {
   } catch {
     return 'Unknown error';
   }
+}
+
+function migrateDeprecatedSearchEndpoint(url: string): string {
+  // Jira Cloud removed GET /rest/api/3/search (410 Gone) and replaced it with /rest/api/3/search/jql.
+  // See: https://developer.atlassian.com/changelog/#CHANGE-2046
+  return url.replace('/rest/api/3/search?', '/rest/api/3/search/jql?');
 }
 
 export default async function handler(
@@ -75,8 +97,10 @@ export default async function handler(
       baseUrl: JIRA_BASE_URL,
     });
 
+    // Decode and apply Jira endpoint migrations (e.g., /search -> /search/jql)
+    const decodedUrl = migrateDeprecatedSearchEndpoint(decodeURIComponent(jiraUrl));
+
     // Check if the URL contains currentUser() - if so, we need to replace it with actual account ID
-    const decodedUrl = decodeURIComponent(jiraUrl);
     if (decodedUrl.includes('currentUser()')) {
       // First, get the current user's account ID
       try {
@@ -181,7 +205,8 @@ export default async function handler(
     }
 
     // Forward the request to Jira (no currentUser() replacement needed)
-    const jiraResponse = await fetch(jiraUrl, {
+    const migratedUrl = decodedUrl;
+    const jiraResponse = await fetch(migratedUrl, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,
@@ -202,7 +227,7 @@ export default async function handler(
       return response.status(jiraResponse.status).json({
         error: `Jira API error: ${jiraResponse.status} ${jiraResponse.statusText}`,
         details: errorData,
-        url: jiraUrl.substring(0, 200),
+        url: migratedUrl.substring(0, 200),
       });
     }
 

@@ -8,7 +8,7 @@ This means the Jira API is rejecting your credentials. Here's how to fix it:
 
 1. Go to **Vercel Dashboard** → Your Project → **Settings** → **Environment Variables**
 2. Check that you have:
-   - `JIRA_EMAIL` - Your Jira account email (e.g., `cbenosa@datafiesusa.com`)
+   - `JIRA_EMAIL` - Your Jira account email (e.g., `cbenosa@datafiedusa.com`)
    - `JIRA_API_TOKEN` - Your API token (NOT your password!)
 
 ### Step 2: Get a Fresh API Token

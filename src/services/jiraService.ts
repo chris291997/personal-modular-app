@@ -49,27 +49,37 @@ export const searchTickets = async (filter: TaskFilter): Promise<JiraTicket[]> =
     
     if (filter.includeMentions || filter.includeAssigned || filter.includeComments) {
       const conditions: string[] = [];
-      if (filter.includeMentions) {
-        conditions.push('mentions(currentUser())');
-      }
+      // Jira's legacy mentions() function and some currentUser() usages are deprecated/problematic.
+      // To keep queries valid against the new /search/jql endpoint, we rely on assignee/commenter only.
       if (filter.includeAssigned) {
         conditions.push('assignee was currentUser()');
       }
       if (filter.includeComments) {
         conditions.push('commenter = currentUser()');
       }
-      jqlParts.push(`(${conditions.join(' OR ')})`);
+      if (conditions.length > 0) {
+        jqlParts.push(conditions.join(' OR '));
+      }
     }
     
     // Date range filter
-    const startDateStr = filter.startDate.toISOString().split('T')[0];
-    const endDateStr = filter.endDate.toISOString().split('T')[0];
+    // Use local date to avoid timezone issues - format as YYYY-MM-DD
+    const formatDateForJQL = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
+    const startDateStr = formatDateForJQL(filter.startDate);
+    const endDateStr = formatDateForJQL(filter.endDate);
     jqlParts.push(`updated >= "${startDateStr}" AND updated <= "${endDateStr}"`);
     
     const jql = jqlParts.join(' AND ');
     
     // Build the API URL
-    let apiUrl = `${JIRA_BASE_URL}/rest/api/3/search?jql=${encodeURIComponent(jql)}&fields=id,key,summary,status,assignee,created,updated`;
+    // NOTE: Jira removed /rest/api/3/search (410 Gone). Use /rest/api/3/search/jql instead.
+    let apiUrl = `${JIRA_BASE_URL}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=id,key,summary,status,assignee,created,updated`;
     
     // Use serverless proxy if configured (recommended)
     if (SERVERLESS_PROXY_URL) {

@@ -43,7 +43,7 @@ The Task module currently uses manual entry. To enable automatic Jira ticket fet
 
    **Variable 1:**
    - Name: `JIRA_EMAIL`
-   - Value: `cbenosa@datafiesusa.com`
+   - Value: `cbenosa@datafiedusa.com`
    - Environments: ✅ Production ✅ Preview ✅ Development
 
    **Variable 2:**
