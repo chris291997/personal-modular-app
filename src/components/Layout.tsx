@@ -1,7 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
 import { getEnabledModules } from '../modules';
 import ThemeToggle from './ThemeToggle';
-import { Home as HomeIcon, Wallet, CheckSquare } from 'lucide-react';
+import { getCurrentUser, logout } from '../services/authService';
+import { Home as HomeIcon, Wallet, CheckSquare, LogOut, User as UserIcon, Settings } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { User } from '../types/user';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,6 +13,41 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const modules = getEnabledModules();
+  const [user, setUser] = useState<User | null>(getCurrentUser());
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setUser(getCurrentUser());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    if (showProfileMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProfileMenu]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   const getIcon = (moduleId: string) => {
     switch (moduleId) {
@@ -70,6 +108,46 @@ export default function Layout({ children }: LayoutProps) {
                 ))}
               </div>
               <ThemeToggle />
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  {user?.profilePicture ? (
+                    <img
+                      src={user.profilePicture}
+                      alt={user.name}
+                      className="w-8 h-8 rounded-full"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                      <UserIcon className="w-5 h-5 text-white" />
+                    </div>
+                  )}
+                  <span className="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {user?.name || 'User'}
+                  </span>
+                </button>
+                {showProfileMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                    <Link
+                      to="/profile"
+                      className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      onClick={() => setShowProfileMenu(false)}
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Profile Settings</span>
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

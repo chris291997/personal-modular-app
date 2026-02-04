@@ -8,7 +8,7 @@ interface ConsultFormProps {
 }
 
 export default function ConsultForm({ compact = false }: ConsultFormProps) {
-  const [type, setType] = useState<'expense' | 'debt'>('expense');
+  const [type, setType] = useState<'expense' | 'debt' | 'subscription'>('expense');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ConsultResult | null>(null);
 
@@ -21,6 +21,9 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
     minimumPayment: '',
     months: '',
     interestRate: '',
+    downPayment: '',
+    // Subscription fields
+    billingFrequency: 'monthly' as 'monthly' | 'yearly',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,10 +36,13 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
         ...(type === 'expense' ? {
           isRecurring: formData.isRecurring,
           recurringFrequency: formData.isRecurring ? formData.recurringFrequency : undefined,
-        } : {
+        } : type === 'debt' ? {
           minimumPayment: formData.minimumPayment ? parseFloat(formData.minimumPayment) : undefined,
           months: formData.months ? parseInt(formData.months) : undefined,
           interestRate: formData.interestRate ? parseFloat(formData.interestRate) : undefined,
+          downPayment: formData.downPayment ? parseFloat(formData.downPayment) : undefined,
+        } : {
+          billingFrequency: formData.billingFrequency,
         }),
       };
       const consultResult = await calculateConsult(input);
@@ -58,6 +64,8 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
       minimumPayment: '',
       months: '',
       interestRate: '',
+      downPayment: '',
+      billingFrequency: 'monthly',
     });
     setResult(null);
   };
@@ -75,13 +83,14 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
                 required
                 value={type}
                 onChange={(e) => {
-                  setType(e.target.value as 'expense' | 'debt');
+                  setType(e.target.value as 'expense' | 'debt' | 'subscription');
                   resetForm();
                 }}
                 className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
                 <option value="expense">Expense</option>
                 <option value="debt">Debt</option>
+                <option value="subscription">Subscription</option>
               </select>
             </div>
 
@@ -134,8 +143,8 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
                 </div>
               )}
             </>
-          ) : (
-            <div className="grid grid-cols-3 gap-3">
+          ) : type === 'debt' ? (
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Min Payment
@@ -146,6 +155,19 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
                   value={formData.minimumPayment}
                   onChange={(e) => setFormData({ ...formData, minimumPayment: e.target.value })}
                   placeholder="Min payment"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Down Payment
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.downPayment}
+                  onChange={(e) => setFormData({ ...formData, downPayment: e.target.value })}
+                  placeholder="Down payment"
                   className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
@@ -174,6 +196,20 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
                   className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Billing Frequency
+              </label>
+              <select
+                value={formData.billingFrequency}
+                onChange={(e) => setFormData({ ...formData, billingFrequency: e.target.value as 'monthly' | 'yearly' })}
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
             </div>
           )}
 
@@ -298,13 +334,14 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
                 required
                 value={type}
                 onChange={(e) => {
-                  setType(e.target.value as 'expense' | 'debt');
+                  setType(e.target.value as 'expense' | 'debt' | 'subscription');
                   resetForm();
                 }}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
                 <option value="expense">Expense</option>
                 <option value="debt">Debt</option>
+                <option value="subscription">Subscription</option>
               </select>
             </div>
 
@@ -356,20 +393,36 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
                   </div>
                 )}
               </>
-            ) : (
+            ) : type === 'debt' ? (
               <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Minimum Payment
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.minimumPayment}
-                    onChange={(e) => setFormData({ ...formData, minimumPayment: e.target.value })}
-                    placeholder="Monthly minimum payment"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Minimum Payment
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.minimumPayment}
+                      onChange={(e) => setFormData({ ...formData, minimumPayment: e.target.value })}
+                      placeholder="Monthly minimum payment"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Down Payment
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.downPayment}
+                      onChange={(e) => setFormData({ ...formData, downPayment: e.target.value })}
+                      placeholder="Initial down payment"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -401,6 +454,20 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
                   </div>
                 </div>
               </>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Billing Frequency
+                </label>
+                <select
+                  value={formData.billingFrequency}
+                  onChange={(e) => setFormData({ ...formData, billingFrequency: e.target.value as 'monthly' | 'yearly' })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
             )}
 
             <div className="flex space-x-3 pt-4">

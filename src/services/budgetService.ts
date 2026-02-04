@@ -180,6 +180,15 @@ export const addDebt = async (debt: Omit<Debt, 'id' | 'createdAt' | 'updatedAt'>
   if (debt.interestRate !== undefined) {
     debtData.interestRate = debt.interestRate;
   }
+  if (debt.downPayment !== undefined) {
+    debtData.downPayment = debt.downPayment;
+  }
+  if (debt.isPaid !== undefined) {
+    debtData.isPaid = debt.isPaid;
+  }
+  if (debt.totalAmountDue !== undefined) {
+    debtData.totalAmountDue = debt.totalAmountDue;
+  }
   if (debt.notes !== undefined && debt.notes !== '') {
     debtData.notes = debt.notes;
   }
@@ -212,6 +221,9 @@ export const updateDebt = async (id: string, updates: Partial<Debt>): Promise<vo
   if (updates.minimumPayment !== undefined) updateData.minimumPayment = updates.minimumPayment;
   if (updates.dueDate !== undefined) updateData.dueDate = updates.dueDate;
   if (updates.interestRate !== undefined) updateData.interestRate = updates.interestRate;
+  if (updates.downPayment !== undefined) updateData.downPayment = updates.downPayment;
+  if (updates.isPaid !== undefined) updateData.isPaid = updates.isPaid;
+  if (updates.totalAmountDue !== undefined) updateData.totalAmountDue = updates.totalAmountDue;
   if (updates.notes !== undefined && updates.notes !== '') updateData.notes = updates.notes;
   
   await updateDoc(debtRef, updateData);
@@ -327,12 +339,28 @@ export const calculateConsult = async (input: ConsultInput): Promise<ConsultResu
       monthlyPaymentImpact = input.minimumPayment;
     }
     if (input.amount && input.months) {
-      totalCostOverTime = input.amount;
+      const principal = input.downPayment ? input.amount - input.downPayment : input.amount;
+      totalCostOverTime = principal;
       if (input.interestRate) {
         // Simple interest calculation
         const monthlyRate = input.interestRate / 100 / 12;
-        totalCostOverTime = input.amount * (1 + monthlyRate * input.months);
+        totalCostOverTime = principal * (1 + monthlyRate * input.months);
       }
+      if (input.downPayment) {
+        totalCostOverTime += input.downPayment;
+      }
+    }
+  } else if (input.type === 'subscription') {
+    if (input.billingFrequency === 'monthly') {
+      monthlyPaymentImpact = input.amount;
+      totalCostOverTime = input.amount * 12; // Annual cost
+    } else if (input.billingFrequency === 'yearly') {
+      monthlyPaymentImpact = input.amount / 12;
+      totalCostOverTime = input.amount;
+    } else {
+      // Default to monthly
+      monthlyPaymentImpact = input.amount;
+      totalCostOverTime = input.amount * 12;
     }
   }
   

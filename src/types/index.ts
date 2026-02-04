@@ -41,6 +41,9 @@ export interface Debt extends BaseEntity {
   minimumPayment: number;
   interestRate?: number;
   dueDate: number; // Day of month (1-31)
+  downPayment?: number;
+  isPaid?: boolean;
+  totalAmountDue?: number; // Total amount due including interest
   notes?: string;
 }
 
@@ -53,7 +56,7 @@ export interface SavingsGoal extends BaseEntity {
 }
 
 export interface ConsultInput {
-  type: 'expense' | 'debt';
+  type: 'expense' | 'debt' | 'subscription';
   amount: number;
   // For expenses
   isRecurring?: boolean;
@@ -62,6 +65,9 @@ export interface ConsultInput {
   minimumPayment?: number;
   months?: number;
   interestRate?: number;
+  downPayment?: number;
+  // For subscriptions
+  billingFrequency?: 'monthly' | 'yearly';
 }
 
 export interface ConsultResult {

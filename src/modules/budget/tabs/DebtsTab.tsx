@@ -17,6 +17,9 @@ export default function DebtsTab() {
     minimumPayment: '',
     interestRate: '',
     dueDate: '1',
+    downPayment: '',
+    isPaid: false,
+    totalAmountDue: '',
     notes: '',
   });
 
@@ -48,6 +51,9 @@ export default function DebtsTab() {
           minimumPayment: parseFloat(formData.minimumPayment),
           interestRate: formData.interestRate ? parseFloat(formData.interestRate) : undefined,
           dueDate: parseInt(formData.dueDate),
+          downPayment: formData.downPayment ? parseFloat(formData.downPayment) : undefined,
+          isPaid: formData.isPaid,
+          totalAmountDue: formData.totalAmountDue ? parseFloat(formData.totalAmountDue) : undefined,
         });
       } else {
         await addDebt({
@@ -58,6 +64,9 @@ export default function DebtsTab() {
           minimumPayment: parseFloat(formData.minimumPayment),
           interestRate: formData.interestRate ? parseFloat(formData.interestRate) : undefined,
           dueDate: parseInt(formData.dueDate),
+          downPayment: formData.downPayment ? parseFloat(formData.downPayment) : undefined,
+          isPaid: formData.isPaid,
+          totalAmountDue: formData.totalAmountDue ? parseFloat(formData.totalAmountDue) : undefined,
           notes: formData.notes || undefined,
         });
       }
@@ -80,6 +89,9 @@ export default function DebtsTab() {
       minimumPayment: debt.minimumPayment.toString(),
       interestRate: debt.interestRate?.toString() || '',
       dueDate: debt.dueDate.toString(),
+      downPayment: debt.downPayment?.toString() || '',
+      isPaid: debt.isPaid || false,
+      totalAmountDue: debt.totalAmountDue?.toString() || '',
       notes: debt.notes || '',
     });
     setShowForm(true);
@@ -105,6 +117,9 @@ export default function DebtsTab() {
       minimumPayment: '',
       interestRate: '',
       dueDate: '1',
+      downPayment: '',
+      isPaid: false,
+      totalAmountDue: '',
       notes: '',
     });
     setEditingDebt(null);
@@ -247,6 +262,47 @@ export default function DebtsTab() {
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Down Payment
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.downPayment}
+                  onChange={(e) => setFormData({ ...formData, downPayment: e.target.value })}
+                  placeholder="Initial down payment"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Total Amount Due
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.totalAmountDue}
+                  onChange={(e) => setFormData({ ...formData, totalAmountDue: e.target.value })}
+                  placeholder="Total including interest"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isPaid"
+                checked={formData.isPaid}
+                onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
+                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              />
+              <label htmlFor="isPaid" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Mark as Paid
+              </label>
             </div>
 
             <div>
@@ -297,7 +353,8 @@ export default function DebtsTab() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Remaining</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Min Payment</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Due Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Due</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -319,9 +376,24 @@ export default function DebtsTab() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       ${debt.minimumPayment.toFixed(2)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                      Day {debt.dueDate}
-                      {debt.interestRate && ` (${debt.interestRate.toFixed(2)}%)`}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {debt.totalAmountDue ? `$${debt.totalAmountDue.toFixed(2)}` : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {debt.isPaid ? (
+                        <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs font-medium">
+                          Paid
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-xs font-medium">
+                          Active
+                        </span>
+                      )}
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Day {debt.dueDate}
+                        {debt.interestRate && ` • ${debt.interestRate.toFixed(2)}%`}
+                        {debt.downPayment && ` • Down: $${debt.downPayment.toFixed(2)}`}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex space-x-2">

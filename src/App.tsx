@@ -3,13 +3,27 @@ import { useEffect, useState } from 'react';
 import { getEnabledModules } from './modules';
 import Layout from './components/Layout';
 import Home from './pages/Home';
+import Login from './pages/Login';
+import Profile from './pages/Profile';
+import ForgotPassword from './pages/ForgotPassword';
 import InstallPWA from './components/InstallPWA';
 import { initializeNotifications, setupNotificationListener } from './services/notificationService';
+import { subscribeToAuthState } from './services/authService';
+import { User } from './types/user';
 
 function App() {
-  const [modules] = useState(getEnabledModules());
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [modules, setModules] = useState(getEnabledModules());
 
   useEffect(() => {
+    // Subscribe to auth state changes
+    const unsubscribe = subscribeToAuthState((currentUser) => {
+      setUser(currentUser);
+      setModules(getEnabledModules());
+      setLoading(false);
+    });
+
     // Initialize notifications
     const initNotifications = async () => {
       await initializeNotifications();
@@ -17,24 +31,43 @@ function App() {
     };
     
     initNotifications();
+
+    return unsubscribe;
   }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
 
   return (
     <Router>
-      <Layout>
+      {!user ? (
         <Routes>
-          <Route path="/" element={<Home />} />
-          {modules.map(module => (
-            <Route
-              key={module.id}
-              path={module.path}
-              element={<module.component />}
-            />
-          ))}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-        <InstallPWA />
-      </Layout>
+      ) : (
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/profile" element={<Profile />} />
+            {modules.map(module => (
+              <Route
+                key={module.id}
+                path={module.path}
+                element={<module.component />}
+              />
+            ))}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+          <InstallPWA />
+        </Layout>
+      )}
     </Router>
   );
 }

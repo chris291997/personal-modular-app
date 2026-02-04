@@ -1,8 +1,10 @@
 import { Module } from '../types';
 import BudgetModule from './budget/BudgetModule';
 import TaskModule from './task/TaskModule';
+import UserManagementModule from './user/UserManagementModule';
+import { canAccessModule, getCurrentUser } from '../services/authService';
 
-export const modules: Module[] = [
+export const allModules: Module[] = [
   {
     id: 'budget',
     name: 'Budget',
@@ -19,12 +21,33 @@ export const modules: Module[] = [
     component: TaskModule,
     enabled: true,
   },
+  {
+    id: 'users',
+    name: 'User Management',
+    icon: '👥',
+    path: '/users',
+    component: UserManagementModule,
+    enabled: true,
+  },
 ];
 
 export const getModule = (id: string): Module | undefined => {
-  return modules.find(m => m.id === id);
+  return allModules.find(m => m.id === id);
 };
 
 export const getEnabledModules = (): Module[] => {
-  return modules.filter(m => m.enabled);
+  const user = getCurrentUser();
+  if (!user) {
+    return [];
+  }
+
+  // Filter modules based on user access
+  return allModules.filter(module => {
+    // User management is only for admins
+    if (module.id === 'users') {
+      return user.role === 'administrator';
+    }
+    // Check if user can access this module
+    return canAccessModule(user, module.id);
+  });
 };
