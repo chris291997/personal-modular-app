@@ -17,105 +17,43 @@ A Progressive Web App (PWA) for managing your budget, expenses, debts, savings g
 - **Manual Entry**: Add tickets manually if API access is unavailable
 - **Bullet List View**: Clean, organized view of all your tickets
 
-## Setup Instructions
+### User Management
+- **Authentication**: Secure login/logout with Firebase Auth
+- **Role-Based Access**: Administrator and member roles
+- **Module Control**: Admin can control which modules each user can access
 
-### 1. Install Dependencies
+## Quick Start
 
-```bash
-npm install
-```
-
-### 2. Firebase Configuration
-
-1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
-2. Enable Firestore Database
-3. Enable Cloud Messaging for push notifications
-4. Get your Firebase config from Project Settings > General > Your apps
-5. Update `src/firebase/config.ts` with your Firebase configuration:
-
-```typescript
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
-```
-
-6. Generate a VAPID key for push notifications:
-   - Go to Firebase Console > Project Settings > Cloud Messaging
-   - Under "Web Push certificates", generate a new key pair
-   - Update `YOUR_VAPID_KEY` in `src/firebase/config.ts`
-
-### 3. Jira Configuration
-
-1. Update `src/services/jiraService.ts` with your Jira email:
-   ```typescript
-   const JIRA_EMAIL = 'your-email@example.com';
+1. **Install dependencies:**
+   ```bash
+   npm install
    ```
-2. The API token is already configured. If you need to regenerate it:
-   - Go to [Atlassian Account Settings](https://id.atlassian.com/manage-profile/security/api-tokens)
-   - Create a new API token
-   - Update `JIRA_API_TOKEN` in `src/services/jiraService.ts`
 
-### 4. Firestore Security Rules
+2. **Configure Firebase:**
+   See [docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md)
 
-Set up Firestore security rules in Firebase Console:
+3. **Set up authentication:**
+   See [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md)
 
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
-```
+4. **Run the app:**
+   ```bash
+   npm run dev
+   ```
 
-For development/testing, you can use:
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
-    }
-  }
-}
-```
+5. **Deploy to production:**
+   See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
-⚠️ **Warning**: The permissive rules above are for development only. Use proper authentication in production.
+## Documentation
 
-### 5. Run the Application
+All documentation is organized in the `docs/` folder:
 
-```bash
-npm run dev
-```
-
-The app will be available at `http://localhost:3000`
-
-### 6. Build for Production
-
-```bash
-npm run build
-```
-
-The production build will be in the `dist` folder.
-
-## PWA Installation
-
-### Desktop
-1. Open the app in Chrome/Edge
-2. Click the install icon in the address bar
-3. Or go to Settings > Apps > Install this site as an app
-
-### Mobile (Android)
-1. Open the app in Chrome
-2. Tap the menu (three dots)
-3. Select "Add to Home screen" or "Install app"
+- **[AUTHENTICATION.md](docs/AUTHENTICATION.md)** - User authentication, admin setup, and secure configuration
+- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Complete guide for deploying to Vercel
+- **[JIRA_SETUP.md](docs/JIRA_SETUP.md)** - Jira integration setup and troubleshooting
+- **[PWA_SETUP.md](docs/PWA_SETUP.md)** - PWA installation and configuration
+- **[FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md)** - Firebase configuration and security rules
+- **[NEXT_STEPS.md](docs/NEXT_STEPS.md)** - Quick reference for next steps
+- **[PROJECT_SUMMARY.md](docs/PROJECT_SUMMARY.md)** - Complete project overview
 
 ## Project Structure
 
@@ -125,10 +63,13 @@ src/
 ├── firebase/           # Firebase configuration
 ├── modules/            # Feature modules
 │   ├── budget/        # Budget module
-│   └── task/          # Task module
+│   ├── task/          # Task module
+│   └── user/          # User management module
 ├── services/          # API and business logic
 ├── types/             # TypeScript type definitions
 └── pages/             # Page components
+api/                    # Serverless functions
+docs/                   # Documentation
 ```
 
 ## Technologies Used
@@ -136,8 +77,10 @@ src/
 - **React 18** - UI framework
 - **TypeScript** - Type safety
 - **Vite** - Build tool and dev server
-- **Firebase** - Database and push notifications
+- **Firebase** - Database, authentication, and push notifications
+- **Firebase Admin SDK** - Secure user management
 - **React Router** - Navigation
+- **Tailwind CSS** - Styling
 - **date-fns** - Date utilities
 - **PWA Plugin** - Progressive Web App features
 
