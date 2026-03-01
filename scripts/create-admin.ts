@@ -27,6 +27,11 @@ const ADMIN_EMAIL = 'christopherbenosa81@gmail.com';
 const ADMIN_PASSWORD = 'Admin@123!';
 const ADMIN_NAME = 'chris';
 
+type FirebaseLikeError = {
+  code?: string;
+  message?: string;
+};
+
 async function createAdminUser() {
   try {
     console.log('🚀 Starting admin user creation...\n');
@@ -62,8 +67,9 @@ async function createAdminUser() {
       userCredential = await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASSWORD);
       console.log(`✅ Firebase Auth user created!`);
       console.log(`   User ID: ${userCredential.user.uid}`);
-    } catch (error: any) {
-      if (error.code === 'auth/email-already-in-use') {
+    } catch (error: unknown) {
+      const firebaseError = error as FirebaseLikeError;
+      if (firebaseError.code === 'auth/email-already-in-use') {
         console.log('⚠️  User already exists in Firebase Auth');
         console.log('   Trying to find existing user...');
         
@@ -100,8 +106,9 @@ async function createAdminUser() {
     try {
       await sendEmailVerification(userCredential.user);
       console.log('✅ Verification email sent!');
-    } catch (emailError: any) {
-      console.warn('⚠️  Could not send verification email:', emailError.message);
+    } catch (emailError: unknown) {
+      const errorMessage = emailError instanceof Error ? emailError.message : 'Unknown error';
+      console.warn('⚠️  Could not send verification email:', errorMessage);
       console.log('   You can resend it from the Profile page after logging in.');
     }
 
@@ -115,21 +122,23 @@ async function createAdminUser() {
     console.log('   2. Verify your email address!');
     console.log('   3. Keep these credentials secure!\n');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const firebaseError = error as FirebaseLikeError;
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('\n❌ Error creating admin user:');
-    console.error('   ', error.message);
+    console.error('   ', errorMessage);
     
-    if (error.code) {
-      console.error(`   Error code: ${error.code}`);
+    if (firebaseError.code) {
+      console.error(`   Error code: ${firebaseError.code}`);
     }
 
-    if (error.code === 'auth/operation-not-allowed') {
+    if (firebaseError.code === 'auth/operation-not-allowed') {
       console.error('\n💡 Solution: Enable Email/Password authentication in Firebase Console');
       console.error('   Go to: Firebase Console > Authentication > Sign-in method');
       console.error('   Enable "Email/Password" provider');
     }
 
-    if (error.code === 'auth/invalid-email') {
+    if (firebaseError.code === 'auth/invalid-email') {
       console.error('\n💡 Solution: Check that the email format is correct');
     }
 

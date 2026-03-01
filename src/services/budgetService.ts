@@ -28,7 +28,7 @@ export const addIncome = async (income: Omit<Income, 'id' | 'createdAt' | 'updat
   const userId = getCurrentUserId();
 
   const now = new Date();
-  const incomeData: any = {
+  const incomeData: Record<string, unknown> = {
     userId: userId,
     amount: income.amount,
     source: income.source,
@@ -120,7 +120,7 @@ export const updateIncome = async (id: string, updates: Partial<Income>): Promis
     throw new Error('Income not found or access denied');
   }
 
-  const updateData: any = {
+  const updateData: Record<string, unknown> = {
     updatedAt: Timestamp.fromDate(new Date()),
   };
   
@@ -152,7 +152,7 @@ export const addExpense = async (expense: Omit<Expense, 'id' | 'createdAt' | 'up
   const userId = getCurrentUserId();
 
   const now = new Date();
-  const expenseData: any = {
+  const expenseData: Record<string, unknown> = {
     userId: userId,
     amount: expense.amount,
     categoryId: expense.categoryId,
@@ -252,7 +252,7 @@ export const updateExpense = async (id: string, updates: Partial<Expense>): Prom
   }
   
   const expenseRef = doc(db, 'expenses', id);
-  const updateData: any = {
+  const updateData: Record<string, unknown> = {
     updatedAt: Timestamp.fromDate(new Date()),
   };
   
@@ -311,7 +311,7 @@ export const addDebt = async (debt: Omit<Debt, 'id' | 'createdAt' | 'updatedAt'>
   const userId = getCurrentUserId();
 
   const now = new Date();
-  const debtData: any = {
+  const debtData: Record<string, unknown> = {
     userId: userId,
     type: debt.type,
     creditor: debt.creditor,
@@ -395,7 +395,7 @@ export const updateDebt = async (id: string, updates: Partial<Debt>): Promise<vo
   }
 
   const debtRef = doc(db, 'debts', id);
-  const updateData: any = {
+  const updateData: Record<string, unknown> = {
     updatedAt: Timestamp.fromDate(new Date()),
   };
   
@@ -433,7 +433,7 @@ export const addSavingsGoal = async (goal: Omit<SavingsGoal, 'id' | 'createdAt' 
   const userId = getCurrentUserId();
 
   const now = new Date();
-  const goalData: any = {
+  const goalData: Record<string, unknown> = {
     userId: userId,
     name: goal.name,
     targetAmount: goal.targetAmount,
@@ -507,7 +507,7 @@ export const updateSavingsGoal = async (id: string, updates: Partial<SavingsGoal
   }
 
   const goalRef = doc(db, 'savingsGoals', id);
-  const updateData: any = {
+  const updateData: Record<string, unknown> = {
     updatedAt: Timestamp.fromDate(new Date()),
   };
   

@@ -53,7 +53,7 @@ export default function UserManagementModule() {
     try {
       if (editingUser) {
         // Only include password if it's provided and not empty
-        const updateData: any = {
+        const updateData: Partial<User> = {
           name: formData.name,
           email: formData.email,
           role: formData.role,
@@ -79,9 +79,10 @@ export default function UserManagementModule() {
       resetForm();
       loadUsers();
       alert(editingUser ? 'User updated successfully!' : 'User created successfully!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving user:', error);
-      alert(`Failed to save user: ${error.message || 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to save user: ${errorMessage}`);
     }
   };
 
@@ -104,9 +105,10 @@ export default function UserManagementModule() {
       await deleteUserAccount(id);
       loadUsers();
       alert('User deleted successfully!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting user:', error);
-      alert(`Failed to delete user: ${error.message || 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to delete user: ${errorMessage}`);
     }
   };
 

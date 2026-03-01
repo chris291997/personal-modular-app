@@ -98,6 +98,64 @@ export interface TaskFilter {
   includeComments: boolean;
 }
 
+// Lotto Module Types
+export type LottoGame =
+  | 'ultra_6_58'
+  | 'grand_6_55'
+  | 'lucky_6_50'
+  | 'super_6_49'
+  | 'mega_6_45'
+  | 'lotto_6_42'
+  | '6d'
+  | '4d'
+  | '3d_2pm'
+  | '3d_5pm'
+  | '3d_9pm'
+  | '2d_2pm'
+  | '2d_5pm'
+  | '2d_9pm';
+
+export type LottoBetSource = 'manual' | 'generated';
+export type LottoBetResultStatus = 'pending' | 'won' | 'lost';
+export type LottoNotificationChannel = 'in_app' | 'push';
+export type LottoGeneratorStrategy = 'balanced' | 'hot' | 'due' | 'random';
+
+export interface LottoDrawResult extends BaseEntity {
+  game: LottoGame;
+  drawDate: Date;
+  combination: number[];
+  jackpot: number | null;
+  winners: number | null;
+  source: 'pcso_scraper';
+}
+
+export interface LottoBet extends BaseEntity {
+  game: LottoGame;
+  drawDate: Date;
+  pickedNumbers: number[];
+  amount?: number;
+  source: LottoBetSource;
+  strategyUsed?: LottoGeneratorStrategy;
+  resultStatus: LottoBetResultStatus;
+  matchedCount?: number;
+  winnings?: number;
+}
+
+export interface LottoReminder extends BaseEntity {
+  game: LottoGame;
+  enabled: boolean;
+  remindDaysBefore: number;
+  notifyTime: string; // HH:mm in Asia/Manila
+  channels: LottoNotificationChannel[];
+  lastSentForDraw?: string;
+}
+
+export interface GeneratedTicket {
+  numbers: number[];
+  score: number;
+  strategy: LottoGeneratorStrategy;
+}
+
 // Module System
 export interface Module {
   id: string;

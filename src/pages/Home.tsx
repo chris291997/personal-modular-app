@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { getEnabledModules } from '../modules';
-import { Wallet, CheckSquare, TrendingUp, BarChart3, ArrowRight, HelpCircle, Users, Settings as SettingsIcon } from 'lucide-react';
+import { Wallet, CheckSquare, TrendingUp, BarChart3, ArrowRight, HelpCircle, Users, Settings as SettingsIcon, Dice6 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import ConsultForm from '../components/ConsultForm';
 import { useCurrency } from '../hooks/useCurrency';
@@ -79,6 +79,8 @@ export default function Home() {
                     return <Wallet className="w-4 h-4 md:w-5 md:h-5 text-white" />;
                   case 'task':
                     return <CheckSquare className="w-4 h-4 md:w-5 md:h-5 text-white" />;
+                  case 'lotto':
+                    return <Dice6 className="w-4 h-4 md:w-5 md:h-5 text-white" />;
                   case 'users':
                     return <Users className="w-4 h-4 md:w-5 md:h-5 text-white" />;
                   case 'settings':
@@ -99,6 +101,8 @@ export default function Home() {
                       ? 'from-purple-500 to-indigo-600' 
                       : module.id === 'task'
                       ? 'from-blue-500 to-cyan-600'
+                      : module.id === 'lotto'
+                      ? 'from-emerald-500 to-teal-600'
                       : module.id === 'users'
                       ? 'from-orange-500 to-red-600'
                       : 'from-gray-500 to-gray-700'

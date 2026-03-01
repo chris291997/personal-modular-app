@@ -49,9 +49,9 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
       };
       const consultResult = await calculateConsult(input);
       setResult(consultResult);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error calculating consult:', error);
-      const errorMessage = error?.message || 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       alert(`Failed to calculate impact: ${errorMessage}`);
     } finally {
       setLoading(false);

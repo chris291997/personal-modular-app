@@ -1,6 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { JiraTicket, TaskFilter } from '../../../types';
-import { format } from 'date-fns';
 import './TicketList.css';
 
 interface TicketListProps {
@@ -93,6 +92,16 @@ export default function TicketList({ tickets, filter, onDelete }: TicketListProp
     }
   };
 
+  const allSelected = filteredTickets.length > 0 && selectedTickets.size === filteredTickets.length;
+  const someSelected = selectedTickets.size > 0 && selectedTickets.size < filteredTickets.length;
+
+  // Update indeterminate state of select all checkbox
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      selectAllCheckboxRef.current.indeterminate = someSelected;
+    }
+  }, [someSelected]);
+
   if (tickets.length === 0) {
     return (
       <div className="empty-state">
@@ -103,16 +112,6 @@ export default function TicketList({ tickets, filter, onDelete }: TicketListProp
       </div>
     );
   }
-
-  const allSelected = filteredTickets.length > 0 && selectedTickets.size === filteredTickets.length;
-  const someSelected = selectedTickets.size > 0 && selectedTickets.size < filteredTickets.length;
-
-  // Update indeterminate state of select all checkbox
-  useEffect(() => {
-    if (selectAllCheckboxRef.current) {
-      selectAllCheckboxRef.current.indeterminate = someSelected;
-    }
-  }, [someSelected]);
 
   return (
     <div className="ticket-list">

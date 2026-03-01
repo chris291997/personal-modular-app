@@ -4,6 +4,16 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "vite",
+  "crons": [
+    {
+      "path": "/api/cron/scraper-sync",
+      "schedule": "15 1 * * *"
+    },
+    {
+      "path": "/api/cron/send-lotto-reminders",
+      "schedule": "0 0 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",

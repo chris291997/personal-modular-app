@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
@@ -62,12 +61,12 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
 
 // Listen for foreground messages
 export const onMessageListener = () => {
-  return new Promise((resolve) => {
+  return new Promise<unknown>((resolve) => {
     if (!messaging) {
       resolve(null);
       return;
     }
-    onMessage(messaging, (payload: any) => {
+    onMessage(messaging, (payload: unknown) => {
       resolve(payload);
     });
   });

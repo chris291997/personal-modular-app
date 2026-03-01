@@ -128,6 +128,9 @@ export const logout = async (): Promise<void> => {
       import('../stores/taskStore').then(({ useTaskStore }) => {
         useTaskStore.getState().reset();
       });
+      import('../stores/lottoStore').then(({ useLottoStore }) => {
+        useLottoStore.getState().reset();
+      });
     }
   } catch (error) {
     console.error('Logout error:', error);

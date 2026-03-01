@@ -51,9 +51,10 @@ export const createUser = async (
 
     const result = await response.json();
     return result.userId;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating user:', error);
-    throw new Error(error.message || 'Failed to create user');
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create user';
+    throw new Error(errorMessage);
   }
 };
 
@@ -129,15 +130,18 @@ export const updateUser = async (
   }
 
   // Members can only update their own profile and cannot change role or enabledModules
+  let sanitizedUpdates = updates;
+
   if (!isAdmin(currentUser)) {
     if (currentUser.id !== userId) {
       throw new Error('You can only update your own profile');
     }
-    // Remove fields that members cannot update
-    delete (updates as any).role;
-    delete (updates as any).enabledModules;
-    delete (updates as any).password;
-    delete (updates as any).isActive;
+    const { role, enabledModules, password, isActive, ...allowedUpdates } = updates;
+    void role;
+    void enabledModules;
+    void password;
+    void isActive;
+    sanitizedUpdates = allowedUpdates;
   }
 
   try {
@@ -148,12 +152,12 @@ export const updateUser = async (
     }
 
     const userRef = doc(db, 'users', userId);
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       updatedAt: Timestamp.fromDate(new Date()),
     };
 
     // Handle password update via Admin API if provided
-    if (updates.password && updates.password.trim() !== '') {
+    if (sanitizedUpdates.password && sanitizedUpdates.password.trim() !== '') {
       if (!isAdmin(currentUser)) {
         throw new Error('Only administrators can update passwords');
       }
@@ -167,7 +171,7 @@ export const updateUser = async (
         body: JSON.stringify({
           action: 'resetPassword',
           userId: userId,
-          newPassword: updates.password,
+          newPassword: sanitizedUpdates.password,
         }),
       });
 
@@ -178,25 +182,25 @@ export const updateUser = async (
     }
 
     // Only include defined fields
-    if (updates.name !== undefined) updateData.name = updates.name;
-    if (updates.email !== undefined) updateData.email = updates.email;
-    if (updates.role !== undefined && isAdmin(currentUser)) updateData.role = updates.role;
-    if (updates.profilePicture !== undefined) updateData.profilePicture = updates.profilePicture;
-    if (updates.gender !== undefined) updateData.gender = updates.gender;
-    if (updates.birthdate !== undefined) {
-      updateData.birthdate = updates.birthdate ? Timestamp.fromDate(updates.birthdate) : null;
+    if (sanitizedUpdates.name !== undefined) updateData.name = sanitizedUpdates.name;
+    if (sanitizedUpdates.email !== undefined) updateData.email = sanitizedUpdates.email;
+    if (sanitizedUpdates.role !== undefined && isAdmin(currentUser)) updateData.role = sanitizedUpdates.role;
+    if (sanitizedUpdates.profilePicture !== undefined) updateData.profilePicture = sanitizedUpdates.profilePicture;
+    if (sanitizedUpdates.gender !== undefined) updateData.gender = sanitizedUpdates.gender;
+    if (sanitizedUpdates.birthdate !== undefined) {
+      updateData.birthdate = sanitizedUpdates.birthdate ? Timestamp.fromDate(sanitizedUpdates.birthdate) : null;
     }
-    if (updates.phone !== undefined) updateData.phone = updates.phone;
-    if (updates.address !== undefined) updateData.address = updates.address;
-    if (updates.enabledModules !== undefined && isAdmin(currentUser)) {
-      updateData.enabledModules = updates.enabledModules;
+    if (sanitizedUpdates.phone !== undefined) updateData.phone = sanitizedUpdates.phone;
+    if (sanitizedUpdates.address !== undefined) updateData.address = sanitizedUpdates.address;
+    if (sanitizedUpdates.enabledModules !== undefined && isAdmin(currentUser)) {
+      updateData.enabledModules = sanitizedUpdates.enabledModules;
     }
-    if (updates.isActive !== undefined && isAdmin(currentUser)) {
-      updateData.isActive = updates.isActive;
+    if (sanitizedUpdates.isActive !== undefined && isAdmin(currentUser)) {
+      updateData.isActive = sanitizedUpdates.isActive;
     }
 
     await updateDoc(userRef, updateData);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating user:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     throw new Error(errorMessage || 'Failed to update user');
@@ -225,7 +229,7 @@ export const updateUserProfile = async (
     }
 
     const userRef = doc(db, 'users', userId);
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       updatedAt: Timestamp.fromDate(new Date()),
     };
 
@@ -239,7 +243,7 @@ export const updateUserProfile = async (
     if (profile.address !== undefined) updateData.address = profile.address;
 
     await updateDoc(userRef, updateData);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating profile:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     
@@ -297,7 +301,7 @@ export const deleteUserAccount = async (userId: string): Promise<void> => {
       const errorMessage = errorData.error || errorData.message || 'Failed to delete user';
       throw new Error(errorMessage);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting user:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     

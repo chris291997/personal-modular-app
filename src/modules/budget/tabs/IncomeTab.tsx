@@ -43,9 +43,9 @@ export default function IncomeTab() {
       }
       resetForm();
       // Store will automatically refresh after add/update
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving income:', error);
-      const errorMessage = error?.message || 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       alert(`Failed to save income: ${errorMessage}\n\nCheck browser console for details.`);
     }
   };

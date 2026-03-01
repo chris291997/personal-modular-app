@@ -6,6 +6,10 @@ import { doc, setDoc, Timestamp, getDocs, query, where, collection } from 'fireb
 import { auth, db } from '../firebase/config';
 import * as bcrypt from 'bcryptjs';
 
+type FirebaseLikeError = {
+  code?: string;
+};
+
 export const initializeAdminUser = async () => {
   try {
     const adminEmail = 'christopherbenosa81@gmail.com';
@@ -28,8 +32,9 @@ export const initializeAdminUser = async () => {
     let userCredential;
     try {
       userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
-    } catch (error: any) {
-      if (error.code === 'auth/email-already-in-use') {
+    } catch (error: unknown) {
+      const firebaseError = error as FirebaseLikeError;
+      if (firebaseError.code === 'auth/email-already-in-use') {
         console.log('Admin user already exists in Firebase Auth');
         console.log('Please use the API endpoint to create the Firestore document with hashed password');
         return;

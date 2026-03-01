@@ -22,9 +22,10 @@ export const requestPasswordReset = async (email: string): Promise<string> => {
 
     const result = await response.json();
     return result.resetLink; // In production, this would be sent via email
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error requesting password reset:', error);
-    throw new Error(error.message || 'Failed to request password reset');
+    const errorMessage = error instanceof Error ? error.message : 'Failed to request password reset';
+    throw new Error(errorMessage);
   }
 };
 
@@ -50,8 +51,9 @@ export const requestVerificationEmail = async (email: string): Promise<string> =
 
     const result = await response.json();
     return result.verificationLink; // In production, this would be sent via email
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error requesting verification email:', error);
-    throw new Error(error.message || 'Failed to request verification email');
+    const errorMessage = error instanceof Error ? error.message : 'Failed to request verification email';
+    throw new Error(errorMessage);
   }
 };

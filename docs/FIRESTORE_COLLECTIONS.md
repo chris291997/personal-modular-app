@@ -98,6 +98,71 @@ This document lists all Firestore collections used in the Personal Management Ap
   - `currencySymbol` (string)
   - `updatedAt` (Timestamp)
 
+## Lotto Module Collections
+
+### 9. **Official Lotto Results** → `lotto_results` collection
+- **Collection Name**: `lotto_results`
+- **Purpose**: Global shared PCSO draw data synced by cron scraper
+- **Recommended Document ID**: `{game}_{yyyy-mm-dd}_{combination}`
+- **Fields**:
+  - `game` (string)
+  - `drawDate` (Timestamp)
+  - `combination` (number[])
+  - `jackpot` (number | null)
+  - `winners` (number | null)
+  - `source` (string, usually `pcso_scraper`)
+  - `createdAt` (Timestamp)
+  - `updatedAt` (Timestamp)
+
+### 10. **User Bets** → `lotto_bets` collection
+- **Collection Name**: `lotto_bets`
+- **Fields**:
+  - `userId` (string) - User ID from Firebase Auth
+  - `game` (string)
+  - `drawDate` (Timestamp)
+  - `pickedNumbers` (number[])
+  - `amount` (number | null)
+  - `source` (string: `manual` | `generated`)
+  - `strategyUsed` (string | null)
+  - `resultStatus` (string: `pending` | `won` | `lost`)
+  - `matchedCount` (number | null)
+  - `winnings` (number | null)
+  - `createdAt` (Timestamp)
+  - `updatedAt` (Timestamp)
+
+### 11. **User Lotto Reminders** → `lotto_reminders` collection
+- **Collection Name**: `lotto_reminders`
+- **Fields**:
+  - `userId` (string)
+  - `game` (string)
+  - `enabled` (boolean)
+  - `remindDaysBefore` (number)
+  - `notifyTime` (string: `HH:mm`, Asia/Manila)
+  - `channels` (string[]: `in_app`, `push`)
+  - `lastSentForDraw` (string | null)
+  - `createdAt` (Timestamp)
+  - `updatedAt` (Timestamp)
+
+### 12. **User Push Devices** → `user_devices` collection
+- **Collection Name**: `user_devices`
+- **Fields**:
+  - `userId` (string)
+  - `token` (string) - FCM token
+  - `platform` (string) - Browser/device user agent
+  - `createdAt` (Timestamp)
+  - `updatedAt` (Timestamp)
+
+### 13. **In-app Notifications** → `notifications` collection
+- **Collection Name**: `notifications`
+- **Fields**:
+  - `userId` (string)
+  - `title` (string)
+  - `body` (string)
+  - `type` (string, e.g. `lotto_reminder`)
+  - `read` (boolean)
+  - `metadata` (object)
+  - `createdAt` (Timestamp)
+
 ## How to View Data in Firestore Console
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
@@ -108,9 +173,14 @@ This document lists all Firestore collections used in the Personal Management Ap
    - `debts`
    - `expenses`
    - `incomes`
+   - `lotto_bets`
+   - `lotto_reminders`
+   - `lotto_results`
+   - `notifications`
    - `savingsGoals`
    - `settings`
    - `tickets`
+   - `user_devices`
    - `users`
 
 ## Important Notes
@@ -175,6 +245,33 @@ service cloud.firestore {
     match /tickets/{document=**} {
       allow read, write: if request.auth != null && 
         resource.data.userId == request.auth.uid;
+    }
+
+    // Lotto bets and reminders - users can only access their own data
+    match /lotto_bets/{document=**} {
+      allow read, write: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+    match /lotto_reminders/{document=**} {
+      allow read, write: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // Push tokens and in-app notifications - user scoped
+    match /user_devices/{document=**} {
+      allow read, write: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+    match /notifications/{document=**} {
+      allow read, write: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // Official lotto results are read-only to authenticated users.
+    // Writes should be done by trusted backend (Admin SDK / cron).
+    match /lotto_results/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if false;
     }
     
     // Site settings - admin only

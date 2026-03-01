@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Expense, ExpenseCategory } from '../../../types';
+import { Expense } from '../../../types';
 import { format } from 'date-fns';
 import { Plus, Edit2, Trash2, Wallet, Tag } from 'lucide-react';
 import { useCurrency } from '../../../hooks/useCurrency';
@@ -113,9 +113,9 @@ export default function ExpensesTab() {
       }
       resetForm();
       // Store will automatically refresh after add/update
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving expense:', error);
-      const errorMessage = error?.message || 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       alert(`Failed to save expense: ${errorMessage}`);
     }
   };
@@ -130,9 +130,9 @@ export default function ExpensesTab() {
       setCategoryFormData({ name: '' });
       setShowCategoryForm(false);
       // Store will automatically refresh after addCategory
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error adding category:', error);
-      const errorMessage = error?.message || 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       alert(`Failed to add category: ${errorMessage}`);
     }
   };

@@ -42,12 +42,13 @@ export default function TaskModule() {
       
       // Update store with merged tickets
       useTaskStore.setState({ tickets: Array.from(savedMap.values()) });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching tickets:', err);
-      if (err.message === 'CORS_ERROR' || err.message?.includes('CORS')) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage === 'CORS_ERROR' || errorMessage.includes('CORS')) {
         setError('Jira API cannot be accessed directly from the browser (CORS restriction). This is normal - use "Add Manual Ticket" to add your tickets. They will be saved to Firebase and persist across sessions.');
       } else {
-        setError(err.message || 'Failed to fetch tickets from Jira. Please use "Add Manual Ticket" to add tickets manually.');
+        setError(errorMessage || 'Failed to fetch tickets from Jira. Please use "Add Manual Ticket" to add tickets manually.');
       }
       
       // Still load saved tickets from store even if API fails

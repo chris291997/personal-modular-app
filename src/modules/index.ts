@@ -1,6 +1,7 @@
 import { Module } from '../types';
 import BudgetModule from './budget/BudgetModule';
 import TaskModule from './task/TaskModule';
+import LottoModule from './lotto/LottoModule';
 import UserManagementModule from './user/UserManagementModule';
 import SiteSettingsModule from './settings/SiteSettingsModule';
 import { canAccessModule, getCurrentUser } from '../services/authService';
@@ -20,6 +21,14 @@ export const allModules: Module[] = [
     icon: '📋',
     path: '/tasks',
     component: TaskModule,
+    enabled: true,
+  },
+  {
+    id: 'lotto',
+    name: 'Lotto',
+    icon: '🎱',
+    path: '/lotto',
+    component: LottoModule,
     enabled: true,
   },
   {

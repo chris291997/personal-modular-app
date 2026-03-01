@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // Use default import for firebase-admin in Vercel ESM environment
 import admin from 'firebase-admin';
 import * as bcrypt from 'bcryptjs';
+import { getErrorMessage, getFirebaseAdminServices } from './_lib/firebaseAdmin.js';
 
 // Type definitions
 type Firestore = admin.firestore.Firestore;
@@ -10,74 +11,6 @@ type Auth = admin.auth.Auth;
 // Initialize Firebase Admin SDK
 let db: Firestore | undefined;
 let auth: Auth | undefined;
-
-function initializeFirebaseAdmin() {
-  // Check if already initialized (with safe access)
-  if (admin.apps && admin.apps.length > 0) {
-    // Already initialized
-    if (!db || !auth) {
-      db = admin.firestore();
-      auth = admin.auth();
-    }
-    return;
-  }
-
-  try {
-    // For Vercel, we'll use environment variables for the service account
-    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
-    
-    if (!serviceAccount) {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is not set. Please configure it in Vercel dashboard.');
-    }
-
-    let serviceAccountJson;
-    try {
-      serviceAccountJson = JSON.parse(serviceAccount);
-    } catch (parseError) {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT is not valid JSON. Please check the format in Vercel dashboard.');
-    }
-
-    // Verify required fields in service account
-    if (!serviceAccountJson.project_id || !serviceAccountJson.private_key || !serviceAccountJson.client_email) {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT JSON is missing required fields (project_id, private_key, client_email)');
-    }
-
-    // Initialize Firebase Admin with service account
-    // In Vercel ESM environment, admin.credential should be available
-    if (!admin.credential || typeof admin.credential.cert !== 'function') {
-      console.error('admin.credential:', admin.credential);
-      console.error('admin object keys:', Object.keys(admin));
-      throw new Error('Firebase Admin credential.cert is not available. This may be a firebase-admin version or import issue.');
-    }
-
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccountJson),
-    });
-
-    db = admin.firestore();
-    auth = admin.auth();
-    
-    console.log('Firebase Admin SDK initialized successfully');
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Firebase Admin initialization error:', errorMessage);
-    console.error('Error details:', error);
-    throw new Error(`Failed to initialize Firebase Admin SDK: ${errorMessage}`);
-  }
-}
-
-// Don't initialize on module load - initialize lazily when needed
-// This prevents errors if environment variables aren't set during module load
-
-function getErrorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  if (typeof err === 'string') return err;
-  try {
-    return JSON.stringify(err);
-  } catch {
-    return 'Unknown error';
-  }
-}
 
 export default async function handler(
   request: VercelRequest,
@@ -95,9 +28,11 @@ export default async function handler(
   // Ensure Firebase Admin is initialized
   try {
     if (!db || !auth) {
-      initializeFirebaseAdmin();
+      const services = getFirebaseAdminServices();
+      db = services.db;
+      auth = services.auth;
     }
-    // Double-check after initialization
+
     if (!db || !auth) {
       throw new Error('Firebase Admin services (db or auth) are not initialized');
     }

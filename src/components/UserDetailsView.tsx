@@ -23,31 +23,31 @@ export default function UserDetailsView({ userId, onClose }: UserDetailsViewProp
   const [activeTab, setActiveTab] = useState<'profile' | 'budget'>('profile');
 
   useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [userData, incomesData, expensesData, debtsData, savingsData] = await Promise.all([
+          getUserById(userId),
+          getIncomes(), // TODO: Filter by userId
+          getExpenses(), // TODO: Filter by userId
+          getDebts(), // TODO: Filter by userId
+          getSavingsGoals(), // TODO: Filter by userId
+        ]);
+        setUser(userData);
+        setIncomes(incomesData);
+        setExpenses(expensesData);
+        setDebts(debtsData);
+        setSavings(savingsData);
+      } catch (error) {
+        console.error('Error loading user details:', error);
+        alert('Failed to load user details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadData();
   }, [userId]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [userData, incomesData, expensesData, debtsData, savingsData] = await Promise.all([
-        getUserById(userId),
-        getIncomes(), // TODO: Filter by userId
-        getExpenses(), // TODO: Filter by userId
-        getDebts(), // TODO: Filter by userId
-        getSavingsGoals(), // TODO: Filter by userId
-      ]);
-      setUser(userData);
-      setIncomes(incomesData);
-      setExpenses(expensesData);
-      setDebts(debtsData);
-      setSavings(savingsData);
-    } catch (error) {
-      console.error('Error loading user details:', error);
-      alert('Failed to load user details');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (

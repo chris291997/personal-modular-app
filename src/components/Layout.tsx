@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { getEnabledModules } from '../modules';
 import ThemeToggle from './ThemeToggle';
 import { getCurrentUser, logout, subscribeToAuthState } from '../services/authService';
-import { Home as HomeIcon, Wallet, CheckSquare, LogOut, User as UserIcon, Settings, Users, Settings as SettingsIcon } from 'lucide-react';
+import { Home as HomeIcon, Wallet, CheckSquare, LogOut, User as UserIcon, Settings, Users, Settings as SettingsIcon, Dice6 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { User } from '../types/user';
 
@@ -60,6 +60,8 @@ export default function Layout({ children }: LayoutProps) {
         return <Wallet className={size} />;
       case 'task':
         return <CheckSquare className={size} />;
+      case 'lotto':
+        return <Dice6 className={size} />;
       case 'users':
         return <Users className={size} />;
       case 'settings':

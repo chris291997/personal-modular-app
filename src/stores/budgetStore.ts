@@ -104,9 +104,6 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
   // Load incomes
   loadIncomes: async (startDate?: Date, endDate?: Date, force = false) => {
     const state = get();
-    const cacheKey = startDate && endDate 
-      ? `incomes_${startDate.getTime()}_${endDate.getTime()}`
-      : 'incomes_all';
     const lastFetched = state.lastFetched.incomes;
     const now = Date.now();
     

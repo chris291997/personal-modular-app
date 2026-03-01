@@ -22,15 +22,13 @@ function App() {
       setUser(currentUser);
       setModules(getEnabledModules());
       setLoading(false);
-    });
 
-    // Initialize notifications
-    const initNotifications = async () => {
-      await initializeNotifications();
-      setupNotificationListener();
-    };
-    
-    initNotifications();
+      if (currentUser) {
+        // Re-run so FCM token can be persisted under the authenticated user.
+        initializeNotifications();
+        setupNotificationListener();
+      }
+    });
 
     return unsubscribe;
   }, []);

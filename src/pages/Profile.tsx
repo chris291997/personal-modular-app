@@ -65,7 +65,7 @@ export default function Profile() {
         });
       }
       alert('Profile updated successfully!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating profile:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       alert(`Failed to update profile: ${errorMessage || 'Unknown error'}`);
@@ -90,8 +90,9 @@ export default function Profile() {
       await sendVerificationEmail();
       setVerificationSent(true);
       alert('Verification email sent! Please check your inbox.');
-    } catch (error: any) {
-      alert(`Failed to send verification email: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to send verification email: ${errorMessage}`);
     }
   };
 

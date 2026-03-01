@@ -1,6 +1,8 @@
 import { onMessageListener, requestNotificationPermission } from '../firebase/config';
 import { Debt, Expense } from '../types';
 import { format } from 'date-fns';
+import { auth, db } from '../firebase/config';
+import { doc, setDoc, Timestamp } from 'firebase/firestore';
 
 // Request notification permission and get token
 export const initializeNotifications = async (): Promise<string | null> => {
@@ -9,16 +11,27 @@ export const initializeNotifications = async (): Promise<string | null> => {
     return null;
   }
 
-  return await requestNotificationPermission();
+  const token = await requestNotificationPermission();
+  if (token) {
+    await registerDeviceToken(token);
+  }
+  return token;
 };
 
 // Listen for foreground messages
 export const setupNotificationListener = () => {
-  onMessageListener().then((payload: any) => {
+  onMessageListener().then((payload: unknown) => {
+    const typedPayload = payload as {
+      notification?: {
+        title?: string;
+        body?: string;
+      };
+    } | null;
+
     if (payload) {
-      const notificationTitle = payload.notification?.title || 'New Notification';
+      const notificationTitle = typedPayload?.notification?.title || 'New Notification';
       const notificationOptions = {
-        body: payload.notification?.body || '',
+        body: typedPayload?.notification?.body || '',
         icon: '/pwa-192x192.png',
         badge: '/pwa-192x192.png',
       };
@@ -28,6 +41,24 @@ export const setupNotificationListener = () => {
       }
     }
   });
+};
+
+const registerDeviceToken = async (token: string): Promise<void> => {
+  const userId = auth.currentUser?.uid;
+  if (!userId) return;
+
+  const safeTokenId = token.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 1200);
+  await setDoc(
+    doc(db, 'user_devices', safeTokenId),
+    {
+      userId,
+      token,
+      platform: navigator.userAgent,
+      updatedAt: Timestamp.now(),
+      createdAt: Timestamp.now(),
+    },
+    { merge: true }
+  );
 };
 
 // Check for upcoming debt payments

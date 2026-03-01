@@ -1,6 +1,6 @@
 # Personal Management App
 
-A Progressive Web App (PWA) for managing your budget, expenses, debts, savings goals, and Jira tasks.
+A Progressive Web App (PWA) for managing your budget, expenses, debts, savings goals, Jira tasks, and lotto planning.
 
 ## Features
 
@@ -16,6 +16,12 @@ A Progressive Web App (PWA) for managing your budget, expenses, debts, savings g
 - **Smart Filtering**: Filter tickets by mentions, previous assignments, comments, and date range
 - **Manual Entry**: Add tickets manually if API access is unavailable
 - **Bullet List View**: Clean, organized view of all your tickets
+
+### Lotto Module
+- **Official Results Sync**: Pulls official PCSO results into Firestore
+- **Smart Number Generator**: Generates suggestions from historical draws (balanced/hot/due/random)
+- **Bet History**: Saves your bet numbers per draw and game
+- **Reminders**: In-app and push reminders before scheduled draws
 
 ### User Management
 - **Authentication**: Secure login/logout with Firebase Auth
@@ -64,6 +70,7 @@ src/
 ├── firebase/           # Firebase configuration
 ├── modules/            # Feature modules
 │   ├── budget/        # Budget module
+│   ├── lotto/         # Lotto module
 │   ├── task/          # Task module
 │   └── user/          # User management module
 ├── services/          # API and business logic
@@ -116,6 +123,14 @@ Notifications require:
 1. User permission (requested on first load)
 2. Firebase Cloud Messaging setup
 3. Service worker registration (handled automatically by PWA plugin)
+
+## Environment Variables
+
+For backend APIs and scheduled jobs:
+
+- `FIREBASE_SERVICE_ACCOUNT`: JSON string for Firebase Admin SDK credentials.
+- `CRON_SECRET`: Secret token checked by `/api/cron/*` endpoints (`Authorization: Bearer <CRON_SECRET>`).
+- `PCSO_BACKFILL_MONTHS` (optional): Number of months the scraper keeps from latest results (default: `12`).
 
 ## Offline Support
 
