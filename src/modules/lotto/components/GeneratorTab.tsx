@@ -1,29 +1,41 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { X } from 'lucide-react';
 import { SIX_NUMBER_GAMES, getGameLabel } from '../../../services/lottoService';
 import { LottoGame, LottoGeneratorStrategy } from '../../../types';
 import { useLottoStore } from '../../../stores/lottoStore';
 import { generateTickets, getGameConfig, getTicketStats } from '../utils/generator';
 
-const STRATEGIES: { value: LottoGeneratorStrategy; label: string; description: string }[] = [
+const STRATEGIES: {
+  value: LottoGeneratorStrategy;
+  label: string;
+  description: string;
+  best?: boolean;
+  caveat?: string;
+}[] = [
   {
     value: 'balanced',
     label: 'Balanced',
-    description: 'Frequency-weighted with a light recency tiebreaker. Best all-around pick.',
+    best: true,
+    description: 'Picks numbers with the highest long-run frequency, with a light recency tiebreaker.',
+    caveat: 'Most mathematically defensible — frequency over 300 draws is the most stable signal.',
   },
   {
     value: 'hot',
     label: 'Hot',
-    description: 'Numbers appearing frequently AND recently. Riding the current streak.',
+    description: 'Favours numbers appearing both frequently AND in the most recent draws.',
+    caveat: 'Useful if you believe in streaks, but recency alone can be noise.',
   },
   {
     value: 'due',
     label: 'Due',
-    description: 'Historically active numbers that have gone cold. Statistically "owed" a return.',
+    description: 'Favours historically active numbers that have recently gone "cold".',
+    caveat: 'Based on the idea that overdue numbers will return — a soft form of the gambler\'s fallacy.',
   },
   {
     value: 'random',
     label: 'Random',
-    description: 'All numbers equally weighted. Pure random — history ignored.',
+    description: 'All numbers treated equally — pure random selection.',
+    caveat: 'Ignores history entirely. Still passes all structural filters (sum, odd/even, etc.).',
   },
 ];
 
@@ -46,6 +58,7 @@ const BALL_COLORS: Record<LottoGame, string> = {
 interface TicketResult {
   game: LottoGame;
   numbers: number[];
+  lockedNumbers?: number[];
   score: number;
   strategy: LottoGeneratorStrategy;
 }
@@ -53,15 +66,73 @@ interface TicketResult {
 export default function GeneratorTab() {
   const [game, setGame] = useState<LottoGame>('super_6_49');
   const [strategy, setStrategy] = useState<LottoGeneratorStrategy>('balanced');
+  const [luckyInput, setLuckyInput] = useState('');
+  const [luckyNumbers, setLuckyNumbers] = useState<number[]>([]);
+  const [luckyError, setLuckyError] = useState('');
   const [ticket, setTicket] = useState<TicketResult | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [noResult, setNoResult] = useState(false);
   const [saved, setSaved] = useState(false);
+  const luckyInputRef = useRef<HTMLInputElement>(null);
 
   const { draws, loading, addBet, loadDraws } = useLottoStore();
+  const config = getGameConfig(game);
+  const maxLucky = config.pickCount - 1;
+
+  const handleGameChange = (g: LottoGame) => {
+    setGame(g);
+    setTicket(null);
+    setSaved(false);
+    setNoResult(false);
+    // Clear lucky numbers that fall outside the new game's pool
+    const newConfig = getGameConfig(g);
+    setLuckyNumbers(prev => prev.filter(n => n >= 1 && n <= newConfig.poolMax).slice(0, newConfig.pickCount - 1));
+    setLuckyError('');
+  };
+
+  const addLuckyNumber = (raw: string) => {
+    const n = parseInt(raw.trim(), 10);
+    setLuckyError('');
+    if (!raw.trim()) return;
+    if (Number.isNaN(n) || n < 1 || n > config.poolMax) {
+      setLuckyError(`Must be between 1 and ${config.poolMax}.`);
+      return;
+    }
+    if (luckyNumbers.includes(n)) {
+      setLuckyError(`${n} is already added.`);
+      return;
+    }
+    if (luckyNumbers.length >= maxLucky) {
+      setLuckyError(`Max ${maxLucky} lucky numbers for ${getGameLabel(game)}.`);
+      return;
+    }
+    setLuckyNumbers(prev => [...prev, n]);
+    setLuckyInput('');
+    setTicket(null);
+    setSaved(false);
+  };
+
+  const handleLuckyKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ' ' || e.key === ',') {
+      e.preventDefault();
+      addLuckyNumber(luckyInput);
+    }
+    if (e.key === 'Backspace' && luckyInput === '' && luckyNumbers.length > 0) {
+      setLuckyNumbers(prev => prev.slice(0, -1));
+    }
+  };
+
+  const removeLucky = (n: number) => {
+    setLuckyNumbers(prev => prev.filter(x => x !== n));
+    setLuckyError('');
+    setTicket(null);
+    setSaved(false);
+  };
 
   const handleGenerate = async () => {
     setGenerating(true);
     setSaved(false);
+    setNoResult(false);
     setTicket(null);
 
     let baseDraws = draws;
@@ -70,10 +141,23 @@ export default function GeneratorTab() {
       baseDraws = useLottoStore.getState().draws;
     }
 
-    const results = generateTickets(baseDraws, { game, strategy, ticketCount: 1 });
+    const results = generateTickets(baseDraws, {
+      game,
+      strategy,
+      ticketCount: 1,
+      lockedNumbers: luckyNumbers,
+    });
 
     if (results.length > 0) {
-      setTicket({ game, numbers: results[0].numbers, score: results[0].score, strategy });
+      setTicket({
+        game,
+        numbers: results[0].numbers,
+        lockedNumbers: results[0].lockedNumbers,
+        score: results[0].score,
+        strategy,
+      });
+    } else {
+      setNoResult(true);
     }
     setGenerating(false);
   };
@@ -93,59 +177,139 @@ export default function GeneratorTab() {
     setSaved(true);
   };
 
-  const selectedStrategy = STRATEGIES.find(s => s.value === strategy)!;
   const ballColor = BALL_COLORS[game] ?? 'bg-purple-500';
-  const config = getGameConfig(game);
   const stats = ticket ? getTicketStats(ticket.numbers, config.poolMax) : null;
 
-  // Score visual: 0–1 mapped to Low / Medium / High
   const scoreLabel = (score: number) => {
     if (score >= 0.65) return { text: 'High confidence', color: 'text-green-600 dark:text-green-400' };
     if (score >= 0.40) return { text: 'Medium confidence', color: 'text-yellow-600 dark:text-yellow-400' };
     return { text: 'Low confidence', color: 'text-gray-500 dark:text-gray-400' };
   };
 
+  const isLocked = (n: number) => ticket?.lockedNumbers?.includes(n) ?? false;
+
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
 
-      {/* Controls */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+      {/* Controls card */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-5">
         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Number Generator</h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Game</label>
-            <select
-              value={game}
-              onChange={e => { setGame(e.target.value as LottoGame); setTicket(null); setSaved(false); }}
-              className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm"
-            >
-              {SIX_NUMBER_GAMES.map(g => (
-                <option key={g} value={g}>{getGameLabel(g)}</option>
-              ))}
-            </select>
-          </div>
+        {/* Game selector */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Game</label>
+          <select
+            value={game}
+            onChange={e => handleGameChange(e.target.value as LottoGame)}
+            className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm"
+          >
+            {SIX_NUMBER_GAMES.map(g => (
+              <option key={g} value={g}>{getGameLabel(g)}</option>
+            ))}
+          </select>
+        </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Strategy</label>
-            <select
-              value={strategy}
-              onChange={e => { setStrategy(e.target.value as LottoGeneratorStrategy); setTicket(null); setSaved(false); }}
-              className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm"
-            >
-              {STRATEGIES.map(s => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
+        {/* Strategy cards */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Strategy</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {STRATEGIES.map(s => (
+              <button
+                key={s.value}
+                type="button"
+                onClick={() => { setStrategy(s.value); setTicket(null); setSaved(false); }}
+                className={`relative text-left p-3 rounded-xl border transition-all ${
+                  strategy === s.value
+                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700'
+                }`}
+              >
+                {s.best && (
+                  <span className="absolute top-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-400 text-amber-900">
+                    ★ Best
+                  </span>
+                )}
+                <p className={`text-sm font-semibold mb-0.5 ${strategy === s.value ? 'text-purple-700 dark:text-purple-300' : 'text-gray-800 dark:text-gray-200'}`}>
+                  {s.label}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{s.description}</p>
+                {strategy === s.value && s.caveat && (
+                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-1 italic">{s.caveat}</p>
+                )}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Strategy description */}
-        <p className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
-          <span className="font-medium text-gray-700 dark:text-gray-300">{selectedStrategy.label}:</span>{' '}
-          {selectedStrategy.description}
-        </p>
+        {/* Lucky numbers */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
+              Lucky Numbers <span className="text-gray-400">(optional — guaranteed in your ticket)</span>
+            </label>
+            {luckyNumbers.length > 0 && (
+              <button
+                type="button"
+                onClick={() => { setLuckyNumbers([]); setLuckyError(''); setTicket(null); }}
+                className="text-xs text-red-500 hover:text-red-700"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
 
+          {/* Chip input */}
+          <div
+            className="min-h-[42px] flex flex-wrap gap-1.5 items-center px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 cursor-text"
+            onClick={() => luckyInputRef.current?.focus()}
+          >
+            {luckyNumbers.map(n => (
+              <span
+                key={n}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400 text-amber-900 text-xs font-bold"
+              >
+                ★ {n}
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); removeLucky(n); }}
+                  className="hover:text-amber-700"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+            {luckyNumbers.length < maxLucky && (
+              <input
+                ref={luckyInputRef}
+                type="number"
+                min={1}
+                max={config.poolMax}
+                value={luckyInput}
+                onChange={e => { setLuckyInput(e.target.value); setLuckyError(''); }}
+                onKeyDown={handleLuckyKeyDown}
+                onBlur={() => { if (luckyInput) addLuckyNumber(luckyInput); }}
+                placeholder={luckyNumbers.length === 0 ? `Type a number (1–${config.poolMax}) and press Enter` : `Add more…`}
+                className="flex-1 min-w-[120px] bg-transparent outline-none text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400"
+              />
+            )}
+          </div>
+
+          {luckyError && (
+            <p className="text-xs text-red-500 mt-1">{luckyError}</p>
+          )}
+          {luckyNumbers.length >= maxLucky && (
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              Max {maxLucky} lucky numbers reached. Remove one to add another.
+            </p>
+          )}
+          {luckyNumbers.length > 0 && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              {luckyNumbers.length} locked · the remaining {config.pickCount - luckyNumbers.length} will be generated using <strong>{strategy}</strong> strategy.
+            </p>
+          )}
+        </div>
+
+        {/* Generate button */}
         <button
           onClick={handleGenerate}
           disabled={generating || loading.draws}
@@ -154,6 +318,15 @@ export default function GeneratorTab() {
           {generating || loading.draws ? 'Generating...' : ticket ? 'Generate Another' : 'Generate Ticket'}
         </button>
       </div>
+
+      {/* No-result warning */}
+      {noResult && !generating && (
+        <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4 text-sm text-orange-700 dark:text-orange-300">
+          <strong>Couldn't generate a valid ticket</strong> with your lucky numbers included.
+          <br />
+          Your numbers may be creating a combination that fails the statistical filters (e.g. too many odds, consecutive run, unusual sum). Try removing one lucky number and generating again.
+        </div>
+      )}
 
       {/* Ticket card */}
       {ticket && stats && (
@@ -169,16 +342,30 @@ export default function GeneratorTab() {
             </span>
           </div>
 
-          {/* Lottery balls */}
-          <div className="flex flex-wrap justify-center gap-3 py-2">
-            {ticket.numbers.map(n => (
-              <div
-                key={n}
-                className={`${ballColor} w-12 h-12 rounded-full flex items-center justify-center shadow-md`}
-              >
-                <span className="text-white font-bold text-sm select-none">{n}</span>
-              </div>
-            ))}
+          {/* Lottery balls — gold for locked, game-color for generated */}
+          <div>
+            <div className="flex flex-wrap justify-center gap-3 py-2">
+              {ticket.numbers.map(n => (
+                <div
+                  key={n}
+                  className={`relative w-12 h-12 rounded-full flex items-center justify-center shadow-md ${
+                    isLocked(n) ? 'bg-amber-400' : ballColor
+                  }`}
+                >
+                  <span className={`font-bold text-sm select-none ${isLocked(n) ? 'text-amber-900' : 'text-white'}`}>
+                    {n}
+                  </span>
+                  {isLocked(n) && (
+                    <span className="absolute -top-1 -right-1 text-[8px] leading-none">★</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            {ticket.lockedNumbers && ticket.lockedNumbers.length > 0 && (
+              <p className="text-center text-xs text-amber-600 dark:text-amber-400 mt-1">
+                ★ = your lucky number
+              </p>
+            )}
           </div>
 
           {/* Stats row */}
@@ -213,9 +400,8 @@ export default function GeneratorTab() {
 
           {/* Disclaimer */}
           <p className="text-xs text-gray-400 dark:text-gray-500 text-center leading-relaxed">
-            This ticket passed sum range, odd/even, low/high, consecutive, and group spread filters
-            based on {game} historical data. Every combination is equally random — filters reduce
-            statistical outliers, not predict the future.
+            Passed sum range, odd/even, low/high, consecutive, and group spread filters.
+            Every combination is equally random — filters reduce statistical outliers only.
           </p>
 
           {/* Actions */}
@@ -243,7 +429,7 @@ export default function GeneratorTab() {
       )}
 
       {/* Empty state */}
-      {!ticket && !generating && !loading.draws && (
+      {!ticket && !generating && !loading.draws && !noResult && (
         <div className="text-center py-10 text-gray-500 dark:text-gray-400 text-sm">
           Pick a game and strategy, then hit <strong>Generate Ticket</strong>.
         </div>

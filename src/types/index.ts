@@ -161,6 +161,7 @@ export interface GeneratedTicket {
   numbers: number[];
   score: number;
   strategy: LottoGeneratorStrategy;
+  lockedNumbers?: number[]; // user-supplied lucky numbers included in this ticket
 }
 
 // Module System

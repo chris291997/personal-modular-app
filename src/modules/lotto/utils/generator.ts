@@ -4,6 +4,8 @@ interface GenerateOptions {
   game: LottoGame;
   strategy: LottoGeneratorStrategy;
   ticketCount: number;
+  /** Numbers the user wants guaranteed in every ticket (e.g. lucky numbers). */
+  lockedNumbers?: number[];
 }
 
 const SIX_DIGIT_GAMES: Record<LottoGame, { poolMax: number; pickCount: number }> = {
@@ -226,6 +228,11 @@ export const generateTickets = (
 ): GeneratedTicket[] => {
   const config = SIX_DIGIT_GAMES[options.game];
 
+  // Validate and clamp locked numbers to pool range; remove dupes.
+  const lockedNumbers = Array.from(
+    new Set((options.lockedNumbers ?? []).filter(n => n >= 1 && n <= config.poolMax)),
+  ).slice(0, config.pickCount - 1); // must leave at least 1 slot for generation
+
   const relevantDraws = draws
     .filter(draw => draw.game === options.game)
     .sort((a, b) => b.drawDate.getTime() - a.drawDate.getTime())
@@ -235,12 +242,15 @@ export const generateTickets = (
   const scores = deriveScores(relevantDraws, config.poolMax, options.strategy);
   const tickets: GeneratedTicket[] = [];
   const usedSignatures = new Set<string>();
-  const maxAttempts = Math.max(500, options.ticketCount * 100);
+  // Give extra attempts when locked numbers restrict the search space.
+  const maxAttempts = Math.max(1000, options.ticketCount * 200);
   let attempts = 0;
 
   while (tickets.length < options.ticketCount && attempts < maxAttempts) {
     attempts += 1;
-    const selected = new Set<number>();
+
+    // Pre-seed with locked (lucky) numbers; fill remaining slots via weighted sampling.
+    const selected = new Set<number>(lockedNumbers);
 
     while (selected.size < config.pickCount) {
       const candidates = Array.from({ length: config.poolMax }, (_, i) => i + 1)
@@ -263,6 +273,7 @@ export const generateTickets = (
       numbers,
       score: Number(avgScore.toFixed(4)),
       strategy: options.strategy,
+      lockedNumbers: lockedNumbers.length > 0 ? [...lockedNumbers] : undefined,
     });
   }
 
