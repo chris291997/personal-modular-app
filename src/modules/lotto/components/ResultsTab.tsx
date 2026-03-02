@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { DEFAULT_LOTTO_GAMES, getGameLabel } from '../../../services/lottoService';
+import { DEFAULT_LOTTO_GAMES, getGameLabel, isKnownGame } from '../../../services/lottoService';
 import { LottoGame } from '../../../types';
 import { useLottoStore } from '../../../stores/lottoStore';
 
@@ -7,10 +7,10 @@ export default function ResultsTab() {
   const [game, setGame] = useState<LottoGame | 'all'>('all');
   const { draws, loading, loadDraws } = useLottoStore();
 
-  const filtered = useMemo(
-    () => (game === 'all' ? draws : draws.filter(item => item.game === game)),
-    [draws, game]
-  );
+  const filtered = useMemo(() => {
+    const known = draws.filter(item => isKnownGame(item.game));
+    return game === 'all' ? known : known.filter(item => item.game === game);
+  }, [draws, game]);
 
   return (
     <div className="space-y-4">
@@ -37,7 +37,7 @@ export default function ResultsTab() {
           onClick={() => loadDraws(game === 'all' ? undefined : game, true)}
           className="px-3 py-2 rounded-lg bg-purple-600 text-white text-sm hover:bg-purple-700 transition-colors"
         >
-          Refresh Results
+          Sync Latest
         </button>
       </div>
 

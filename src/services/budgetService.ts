@@ -318,27 +318,22 @@ export const addDebt = async (debt: Omit<Debt, 'id' | 'createdAt' | 'updatedAt'>
     totalAmount: debt.totalAmount,
     remainingAmount: debt.remainingAmount,
     minimumPayment: debt.minimumPayment,
-    dueDate: debt.dueDate,
+    frequency: debt.frequency ?? 'monthly',
+    paidSchedules: debt.paidSchedules ?? 0,
     createdAt: Timestamp.fromDate(now),
     updatedAt: Timestamp.fromDate(now),
   };
-  
-  if (debt.interestRate !== undefined) {
-    debtData.interestRate = debt.interestRate;
-  }
-  if (debt.downPayment !== undefined) {
-    debtData.downPayment = debt.downPayment;
-  }
-  if (debt.isPaid !== undefined) {
-    debtData.isPaid = debt.isPaid;
-  }
-  if (debt.totalAmountDue !== undefined) {
-    debtData.totalAmountDue = debt.totalAmountDue;
-  }
-  if (debt.notes !== undefined && debt.notes !== '') {
-    debtData.notes = debt.notes;
-  }
-  
+
+  if (debt.dueDate !== undefined) debtData.dueDate = debt.dueDate;
+  if (debt.interestRate !== undefined) debtData.interestRate = debt.interestRate;
+  if (debt.downPayment !== undefined) debtData.downPayment = debt.downPayment;
+  if (debt.isPaid !== undefined) debtData.isPaid = debt.isPaid;
+  if (debt.totalAmountDue !== undefined) debtData.totalAmountDue = debt.totalAmountDue;
+  if (debt.notes !== undefined && debt.notes !== '') debtData.notes = debt.notes;
+  if (debt.totalSchedules !== undefined) debtData.totalSchedules = debt.totalSchedules;
+  if (debt.oneTimeDueDate !== undefined) debtData.oneTimeDueDate = debt.oneTimeDueDate;
+  if (debt.secondDueDate !== undefined) debtData.secondDueDate = debt.secondDueDate;
+
   const docRef = await addDoc(collection(db, 'debts'), debtData);
   return docRef.id;
 };
@@ -411,6 +406,11 @@ export const updateDebt = async (id: string, updates: Partial<Debt>): Promise<vo
   if (updates.isPaid !== undefined) updateData.isPaid = updates.isPaid;
   if (updates.totalAmountDue !== undefined) updateData.totalAmountDue = updates.totalAmountDue;
   if (updates.notes !== undefined && updates.notes !== '') updateData.notes = updates.notes;
+  if (updates.frequency !== undefined) updateData.frequency = updates.frequency;
+  if (updates.totalSchedules !== undefined) updateData.totalSchedules = updates.totalSchedules;
+  if (updates.paidSchedules !== undefined) updateData.paidSchedules = updates.paidSchedules;
+  if (updates.oneTimeDueDate !== undefined) updateData.oneTimeDueDate = updates.oneTimeDueDate;
+  if (updates.secondDueDate !== undefined) updateData.secondDueDate = updates.secondDueDate;
   
   await updateDoc(debtRef, updateData);
 };

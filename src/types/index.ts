@@ -33,6 +33,8 @@ export interface Expense extends BaseEntity {
   notes?: string;
 }
 
+export type DebtFrequency = 'one_time' | 'weekly' | 'monthly' | 'bi_monthly';
+
 export interface Debt extends BaseEntity {
   type: 'credit_card' | 'loan' | 'other';
   creditor: string;
@@ -40,11 +42,17 @@ export interface Debt extends BaseEntity {
   remainingAmount: number;
   minimumPayment: number;
   interestRate?: number;
-  dueDate: number; // Day of month (1-31)
+  dueDate?: number; // Day of month (1-31); undefined for one_time
   downPayment?: number;
   isPaid?: boolean;
   totalAmountDue?: number; // Total amount due including interest
   notes?: string;
+  // Payment schedule tracking
+  frequency?: DebtFrequency; // defaults to 'monthly' for existing records
+  totalSchedules?: number; // total number of payment instalments
+  paidSchedules?: number; // how many have been paid (0-based)
+  oneTimeDueDate?: string; // ISO date string (YYYY-MM-DD) for one_time frequency
+  secondDueDate?: number; // second due day (1-31) used for bi_monthly
 }
 
 export interface SavingsGoal extends BaseEntity {

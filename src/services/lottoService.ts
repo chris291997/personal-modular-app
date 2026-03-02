@@ -160,19 +160,24 @@ export const deleteBet = async (id: string): Promise<void> => {
 
 export const getReminders = async (): Promise<LottoReminder[]> => {
   const userId = getCurrentUserId();
+  // Use single-field where to avoid requiring a composite index; sort in memory.
   const snapshot = await getDocs(
-    query(collection(db, 'lotto_reminders'), where('userId', '==', userId), orderBy('game', 'asc'))
+    query(collection(db, 'lotto_reminders'), where('userId', '==', userId))
   );
-  return snapshot.docs.map(item => mapReminder(item.id, item.data() as Record<string, unknown>));
+  return snapshot.docs
+    .map(item => mapReminder(item.id, item.data() as Record<string, unknown>))
+    .sort((a, b) => a.game.localeCompare(b.game));
 };
 
 export const upsertReminder = async (
   payload: Omit<LottoReminder, 'id' | 'createdAt' | 'updatedAt' | 'lastSentForDraw'>
 ): Promise<void> => {
   const userId = getCurrentUserId();
+  // Use single-field where to avoid requiring a composite index; find matching game in memory.
   const snapshot = await getDocs(
-    query(collection(db, 'lotto_reminders'), where('userId', '==', userId), where('game', '==', payload.game))
+    query(collection(db, 'lotto_reminders'), where('userId', '==', userId))
   );
+  const existing = snapshot.docs.find(d => d.data().game === payload.game);
   const now = Timestamp.fromDate(new Date());
   const basePayload = {
     userId,
@@ -184,7 +189,7 @@ export const upsertReminder = async (
     updatedAt: now,
   };
 
-  if (snapshot.empty) {
+  if (!existing) {
     await addDoc(collection(db, 'lotto_reminders'), {
       ...basePayload,
       createdAt: now,
@@ -193,27 +198,29 @@ export const upsertReminder = async (
     return;
   }
 
-  await updateDoc(doc(db, 'lotto_reminders', snapshot.docs[0].id), basePayload);
+  await updateDoc(doc(db, 'lotto_reminders', existing.id), basePayload);
 };
 
-export const getGameLabel = (game: LottoGame): string => {
-  const labels: Record<LottoGame, string> = {
-    ultra_6_58: 'Ultra Lotto 6/58',
-    grand_6_55: 'Grand Lotto 6/55',
-    super_6_49: 'Super Lotto 6/49',
-    mega_6_45: 'Mega Lotto 6/45',
-    lotto_6_42: 'Lotto 6/42',
-    '6d': '6D Lotto',
-    '4d': '4D Lotto',
-    '3d_2pm': '3D Lotto 2PM',
-    '3d_5pm': '3D Lotto 5PM',
-    '3d_9pm': '3D Lotto 9PM',
-    '2d_2pm': '2D Lotto 2PM',
-    '2d_5pm': '2D Lotto 5PM',
-    '2d_9pm': '2D Lotto 9PM',
-  };
-  return labels[game];
+const GAME_LABELS: Record<string, string> = {
+  ultra_6_58: 'Ultra Lotto 6/58',
+  grand_6_55: 'Grand Lotto 6/55',
+  super_6_49: 'Super Lotto 6/49',
+  mega_6_45: 'Mega Lotto 6/45',
+  lotto_6_42: 'Lotto 6/42',
+  '6d': '6D Lotto',
+  '4d': '4D Lotto',
+  '3d_2pm': '3D Lotto 2PM',
+  '3d_5pm': '3D Lotto 5PM',
+  '3d_9pm': '3D Lotto 9PM',
+  '2d_2pm': '2D Lotto 2PM',
+  '2d_5pm': '2D Lotto 5PM',
+  '2d_9pm': '2D Lotto 9PM',
 };
+
+export const getGameLabel = (game: LottoGame | string): string =>
+  GAME_LABELS[game] ?? game.replace(/_/g, ' ').toUpperCase();
+
+export const isKnownGame = (game: string): game is LottoGame => game in GAME_LABELS;
 
 export const SIX_NUMBER_GAMES: LottoGame[] = [
   'ultra_6_58',

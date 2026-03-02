@@ -1,216 +1,258 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { SIX_NUMBER_GAMES, getGameLabel } from '../../../services/lottoService';
-import { GeneratedTicket, LottoGame, LottoGeneratorStrategy } from '../../../types';
+import { LottoGame, LottoGeneratorStrategy } from '../../../types';
 import { useLottoStore } from '../../../stores/lottoStore';
-import { generateTickets } from '../utils/generator';
+import { generateTickets, getGameConfig, getTicketStats } from '../utils/generator';
 
-const STRATEGIES: LottoGeneratorStrategy[] = ['balanced', 'hot', 'due', 'random'];
-const DEFAULT_GAME: LottoGame = 'ultra_6_58';
+const STRATEGIES: { value: LottoGeneratorStrategy; label: string; description: string }[] = [
+  {
+    value: 'balanced',
+    label: 'Balanced',
+    description: 'Frequency-weighted with a light recency tiebreaker. Best all-around pick.',
+  },
+  {
+    value: 'hot',
+    label: 'Hot',
+    description: 'Numbers appearing frequently AND recently. Riding the current streak.',
+  },
+  {
+    value: 'due',
+    label: 'Due',
+    description: 'Historically active numbers that have gone cold. Statistically "owed" a return.',
+  },
+  {
+    value: 'random',
+    label: 'Random',
+    description: 'All numbers equally weighted. Pure random — history ignored.',
+  },
+];
+
+const BALL_COLORS: Record<LottoGame, string> = {
+  ultra_6_58: 'bg-red-500',
+  grand_6_55: 'bg-orange-500',
+  super_6_49: 'bg-yellow-500',
+  mega_6_45: 'bg-green-500',
+  lotto_6_42: 'bg-blue-500',
+  '6d': 'bg-purple-500',
+  '4d': 'bg-pink-500',
+  '3d_2pm': 'bg-teal-500',
+  '3d_5pm': 'bg-teal-600',
+  '3d_9pm': 'bg-teal-700',
+  '2d_2pm': 'bg-indigo-400',
+  '2d_5pm': 'bg-indigo-500',
+  '2d_9pm': 'bg-indigo-600',
+};
+
+interface TicketResult {
+  game: LottoGame;
+  numbers: number[];
+  score: number;
+  strategy: LottoGeneratorStrategy;
+}
 
 export default function GeneratorTab() {
-  const [game, setGame] = useState<LottoGame>(DEFAULT_GAME);
+  const [game, setGame] = useState<LottoGame>('super_6_49');
   const [strategy, setStrategy] = useState<LottoGeneratorStrategy>('balanced');
-  const [ticketCount, setTicketCount] = useState(5);
+  const [ticket, setTicket] = useState<TicketResult | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [generatedByGame, setGeneratedByGame] = useState<Partial<Record<LottoGame, GeneratedTicket[]>>>({});
+  const [saved, setSaved] = useState(false);
 
   const { draws, loading, addBet, loadDraws } = useLottoStore();
 
-  const visibleGames = useMemo(() => SIX_NUMBER_GAMES, []);
+  const handleGenerate = async () => {
+    setGenerating(true);
+    setSaved(false);
+    setTicket(null);
 
-  const ensureDrawData = async () => {
-    if (draws.length === 0) {
+    let baseDraws = draws;
+    if (baseDraws.length === 0) {
       await loadDraws(undefined, true);
+      baseDraws = useLottoStore.getState().draws;
     }
-  };
 
-  const handleGenerateOne = async (selectedGame: LottoGame) => {
-    setGenerating(true);
-    await ensureDrawData();
-    const baseDraws = draws.length > 0 ? draws : useLottoStore.getState().draws;
-    const generated = generateTickets(baseDraws, {
-      game: selectedGame,
-      strategy,
-      ticketCount,
-    });
+    const results = generateTickets(baseDraws, { game, strategy, ticketCount: 1 });
 
-    setGeneratedByGame(prev => ({
-      ...prev,
-      [selectedGame]: generated,
-    }));
+    if (results.length > 0) {
+      setTicket({ game, numbers: results[0].numbers, score: results[0].score, strategy });
+    }
     setGenerating(false);
   };
 
-  const handleGenerateAll = async () => {
-    setGenerating(true);
-    await ensureDrawData();
-    const baseDraws = draws.length > 0 ? draws : useLottoStore.getState().draws;
-    const nextGenerated: Partial<Record<LottoGame, GeneratedTicket[]>> = {};
-
-    visibleGames.forEach(selectedGame => {
-      nextGenerated[selectedGame] = generateTickets(baseDraws, {
-        game: selectedGame,
-        strategy,
-        ticketCount,
-      });
-    });
-
-    setGeneratedByGame(nextGenerated);
-    setGenerating(false);
-  };
-
-  const handleSaveTicket = async (selectedGame: LottoGame, numbers: number[]) => {
+  const handleSave = async () => {
+    if (!ticket) return;
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     await addBet({
-      game: selectedGame,
+      game: ticket.game,
       drawDate: tomorrow,
-      pickedNumbers: numbers,
+      pickedNumbers: ticket.numbers,
       amount: undefined,
       source: 'generated',
-      strategyUsed: strategy,
+      strategyUsed: ticket.strategy,
     });
-    alert('Generated ticket saved to My Bets.');
+    setSaved(true);
+  };
+
+  const selectedStrategy = STRATEGIES.find(s => s.value === strategy)!;
+  const ballColor = BALL_COLORS[game] ?? 'bg-purple-500';
+  const config = getGameConfig(game);
+  const stats = ticket ? getTicketStats(ticket.numbers, config.poolMax) : null;
+
+  // Score visual: 0–1 mapped to Low / Medium / High
+  const scoreLabel = (score: number) => {
+    if (score >= 0.65) return { text: 'High confidence', color: 'text-green-600 dark:text-green-400' };
+    if (score >= 0.40) return { text: 'Medium confidence', color: 'text-yellow-600 dark:text-yellow-400' };
+    return { text: 'Low confidence', color: 'text-gray-500 dark:text-gray-400' };
   };
 
   return (
-    <div className="space-y-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 md:p-4 grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div>
-          <label htmlFor="generator-game" className="block text-sm mb-1 text-gray-700 dark:text-gray-300">
-            Game
-          </label>
-          <select
-            id="generator-game"
-            value={game}
-            onChange={event => setGame(event.target.value as LottoGame)}
-            className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm"
-          >
-            {visibleGames.map(item => (
-              <option key={item} value={item}>
-                {getGameLabel(item)}
-              </option>
-            ))}
-          </select>
-        </div>
+    <div className="space-y-4 max-w-2xl mx-auto">
 
-        <div>
-          <label htmlFor="generator-strategy" className="block text-sm mb-1 text-gray-700 dark:text-gray-300">
-            Strategy
-          </label>
-          <select
-            id="generator-strategy"
-            value={strategy}
-            onChange={event => setStrategy(event.target.value as LottoGeneratorStrategy)}
-            className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm"
-          >
-            {STRATEGIES.map(item => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* Controls */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Number Generator</h2>
 
-        <div>
-          <label htmlFor="generator-ticket-count" className="block text-sm mb-1 text-gray-700 dark:text-gray-300">
-            Ticket Count
-          </label>
-          <input
-            id="generator-ticket-count"
-            type="number"
-            min={1}
-            max={20}
-            value={ticketCount}
-            onChange={event => setTicketCount(Math.max(1, Math.min(20, Number(event.target.value) || 1)))}
-            className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm"
-          />
-        </div>
-
-        <div className="flex items-end gap-2">
-          <button
-            onClick={() => handleGenerateOne(game)}
-            disabled={generating}
-            className="flex-1 px-3 py-2 rounded-lg bg-purple-600 text-white text-sm disabled:bg-gray-500"
-          >
-            {generating ? 'Generating...' : 'Generate Selected Game'}
-          </button>
-          <button
-            onClick={handleGenerateAll}
-            disabled={generating}
-            className="flex-1 px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm disabled:bg-gray-500"
-          >
-            Generate All Games
-          </button>
-          <button
-            onClick={() => setGeneratedByGame({})}
-            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200"
-          >
-            Clear
-          </button>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        {visibleGames.map(selectedGame => {
-          const tickets = generatedByGame[selectedGame] || [];
-          return (
-            <div
-              key={selectedGame}
-              className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 md:p-4"
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Game</label>
+            <select
+              value={game}
+              onChange={e => { setGame(e.target.value as LottoGame); setTicket(null); setSaved(false); }}
+              className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm"
             >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm md:text-base font-semibold text-gray-900 dark:text-gray-100">
-                  {getGameLabel(selectedGame)}
-                </h3>
-                <button
-                  onClick={() => handleGenerateOne(selectedGame)}
-                  disabled={generating}
-                  className="px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs hover:bg-purple-700 disabled:bg-gray-500"
-                >
-                  Regenerate
-                </button>
-              </div>
+              {SIX_NUMBER_GAMES.map(g => (
+                <option key={g} value={g}>{getGameLabel(g)}</option>
+              ))}
+            </select>
+          </div>
 
-              {tickets.length === 0 ? (
-                <p className="text-sm text-gray-600 dark:text-gray-300">No generated numbers yet for this game.</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {tickets.map((ticket, index) => (
-                    <div
-                      key={`${selectedGame}-${ticket.numbers.join('-')}-${index}`}
-                      className="rounded-lg border border-gray-200 dark:border-gray-700 p-3"
-                    >
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Ticket #{index + 1} · score {ticket.score}
-                      </p>
-                      <p className="font-mono text-lg text-gray-900 dark:text-gray-100 mt-2">
-                        {ticket.numbers.join(' - ')}
-                      </p>
-                      <button
-                        onClick={() => handleSaveTicket(selectedGame, ticket.numbers)}
-                        className="mt-3 px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700"
-                      >
-                        Save to My Bets
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Strategy</label>
+            <select
+              value={strategy}
+              onChange={e => { setStrategy(e.target.value as LottoGeneratorStrategy); setTicket(null); setSaved(false); }}
+              className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm"
+            >
+              {STRATEGIES.map(s => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Strategy description */}
+        <p className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
+          <span className="font-medium text-gray-700 dark:text-gray-300">{selectedStrategy.label}:</span>{' '}
+          {selectedStrategy.description}
+        </p>
+
+        <button
+          onClick={handleGenerate}
+          disabled={generating || loading.draws}
+          className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-semibold text-sm disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-colors"
+        >
+          {generating || loading.draws ? 'Generating...' : ticket ? 'Generate Another' : 'Generate Ticket'}
+        </button>
       </div>
 
-      {Object.keys(generatedByGame).length === 0 && !loading.draws && (
-        <p className="text-sm text-gray-600 dark:text-gray-300 text-center py-6">
-          No generated tickets yet. Generate selected game or all game types.
-        </p>
+      {/* Ticket card */}
+      {ticket && stats && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-5">
+
+          {/* Game + strategy badge */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              {getGameLabel(ticket.game)}
+            </span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-medium capitalize">
+              {ticket.strategy}
+            </span>
+          </div>
+
+          {/* Lottery balls */}
+          <div className="flex flex-wrap justify-center gap-3 py-2">
+            {ticket.numbers.map(n => (
+              <div
+                key={n}
+                className={`${ballColor} w-12 h-12 rounded-full flex items-center justify-center shadow-md`}
+              >
+                <span className="text-white font-bold text-sm select-none">{n}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg py-2 px-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Sum</p>
+              <p className="text-base font-bold text-gray-900 dark:text-gray-100">{stats.sum}</p>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg py-2 px-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Odd / Even</p>
+              <p className="text-base font-bold text-gray-900 dark:text-gray-100">
+                {stats.oddCount} / {stats.evenCount}
+              </p>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg py-2 px-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Low / High</p>
+              <p className="text-base font-bold text-gray-900 dark:text-gray-100">
+                {stats.lowCount} / {stats.highCount}
+              </p>
+            </div>
+          </div>
+
+          {/* Score */}
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-gray-500 dark:text-gray-400">
+              Score: <span className="font-mono text-gray-700 dark:text-gray-300">{ticket.score}</span>
+            </span>
+            <span className={`font-medium ${scoreLabel(ticket.score).color}`}>
+              {scoreLabel(ticket.score).text}
+            </span>
+          </div>
+
+          {/* Disclaimer */}
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center leading-relaxed">
+            This ticket passed sum range, odd/even, low/high, consecutive, and group spread filters
+            based on {game} historical data. Every combination is equally random — filters reduce
+            statistical outliers, not predict the future.
+          </p>
+
+          {/* Actions */}
+          <div className="flex gap-2">
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="flex-1 py-2.5 rounded-xl border border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 text-sm font-medium hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors disabled:opacity-50"
+            >
+              Try Another
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saved}
+              className={`flex-1 py-2.5 rounded-xl text-white text-sm font-medium transition-colors ${
+                saved
+                  ? 'bg-green-500 cursor-default'
+                  : 'bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800'
+              }`}
+            >
+              {saved ? 'Saved to My Bets ✓' : 'Save to My Bets'}
+            </button>
+          </div>
+        </div>
       )}
+
+      {/* Empty state */}
+      {!ticket && !generating && !loading.draws && (
+        <div className="text-center py-10 text-gray-500 dark:text-gray-400 text-sm">
+          Pick a game and strategy, then hit <strong>Generate Ticket</strong>.
+        </div>
+      )}
+
       {loading.draws && (
-        <p className="text-sm text-gray-600 dark:text-gray-300 text-center py-6">
-          Loading draw data...
-        </p>
+        <div className="text-center py-10 text-gray-500 dark:text-gray-400 text-sm">
+          Loading draw history...
+        </div>
       )}
     </div>
   );

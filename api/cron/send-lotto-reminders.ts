@@ -15,22 +15,6 @@ type ReminderDoc = {
 
 const getDrawKey = (game: string, drawDate: Date): string => `${game}_${drawDate.toISOString().slice(0, 10)}`;
 
-const parseNotifyTime = (value: string): { hour: number; minute: number } => {
-  const [hour, minute] = value.split(':').map(Number);
-  return {
-    hour: Number.isFinite(hour) ? hour : 20,
-    minute: Number.isFinite(minute) ? minute : 0,
-  };
-};
-
-const buildReminderTime = (drawDate: Date, remindDaysBefore: number, notifyTime: string): Date => {
-  const reminder = new Date(drawDate);
-  reminder.setUTCDate(reminder.getUTCDate() - remindDaysBefore);
-  const time = parseNotifyTime(notifyTime);
-  reminder.setUTCHours(time.hour - 8, time.minute, 0, 0); // Manila UTC+8
-  return reminder;
-};
-
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   response.setHeader('Access-Control-Allow-Origin', '*');
   response.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -62,14 +46,18 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
       const nextDraw = getNextDrawDateForGame(reminder.game as Parameters<typeof getNextDrawDateForGame>[0], now);
       const drawKey = getDrawKey(reminder.game, nextDraw);
+
+      // Skip if we already sent for this draw.
       if (reminder.lastSentForDraw === drawKey) {
         skippedCount += 1;
         continue;
       }
 
-      const reminderTime = buildReminderTime(nextDraw, Math.max(1, reminder.remindDaysBefore || 1), reminder.notifyTime || '20:00');
-      const diffMs = Math.abs(now.getTime() - reminderTime.getTime());
-      if (diffMs > 30 * 60 * 1000) {
+      // Send reminder if the draw is within the configured lead time (e.g. 1 day before).
+      // Add a 1-day buffer so the cron doesn't miss a draw due to minor timing drift.
+      const daysUntilDraw = (nextDraw.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+      const leadDays = Math.max(1, reminder.remindDaysBefore || 1);
+      if (daysUntilDraw <= 0 || daysUntilDraw > leadDays + 1) {
         skippedCount += 1;
         continue;
       }

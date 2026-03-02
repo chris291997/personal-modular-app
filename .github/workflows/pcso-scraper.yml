@@ -2,8 +2,9 @@ name: PCSO Lotto Scraper
 
 on:
   schedule:
-    # Run daily at 10:15 PM Philippine time (14:15 UTC)
-    # PCSO posts results around 9-10 PM PHT
+    # Morning run: 9:15 AM PHT (01:15 UTC) — catches any results posted overnight
+    - cron: '15 1 * * *'
+    # Evening run: 10:15 PM PHT (14:15 UTC) — captures same-day draw results
     - cron: '15 14 * * *'
   workflow_dispatch:
     inputs:

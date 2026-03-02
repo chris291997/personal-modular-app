@@ -29,6 +29,11 @@ const normalize = (value: number, min: number, max: number): number => {
   return (value - min) / (max - min);
 };
 
+const percentile = (sorted: number[], p: number): number => {
+  const idx = Math.floor(sorted.length * p);
+  return sorted[Math.min(idx, sorted.length - 1)];
+};
+
 const sampleWeighted = (weighted: { number: number; weight: number }[]): number => {
   const total = weighted.reduce((sum, item) => sum + item.weight, 0);
   if (total <= 0) {
@@ -42,17 +47,65 @@ const sampleWeighted = (weighted: { number: number; weight: number }[]): number 
   return weighted[weighted.length - 1].number;
 };
 
-const validateTicket = (numbers: number[], poolMax: number): boolean => {
+/**
+ * Computes the empirical sum range from real historical draws.
+ * We use the 12th–88th percentile (a wide band but still cuts the extreme tails).
+ * Falls back to a theory-based estimate when there's not enough history.
+ */
+const computeSumRange = (
+  draws: LottoDrawResult[],
+  poolMax: number,
+  pickCount: number,
+): { min: number; max: number } => {
+  const MIN_DRAWS = 30;
+  if (draws.length >= MIN_DRAWS) {
+    const sums = draws
+      .map(d => d.combination.reduce((a, b) => a + b, 0))
+      .sort((a, b) => a - b);
+    return {
+      min: percentile(sums, 0.12),
+      max: percentile(sums, 0.88),
+    };
+  }
+  // Theory fallback: expected sum = pickCount * (poolMax + 1) / 2, ± ~30%
+  const mean = (pickCount * (poolMax + 1)) / 2;
+  return { min: Math.round(mean * 0.70), max: Math.round(mean * 1.30) };
+};
+
+/**
+ * Validates a ticket against empirical and structural filters.
+ * Only applied to 6-ball games — 2D/3D/4D digit games have different structure.
+ *
+ * Filters applied:
+ *  1. Sum range     — combination must fall within the historical 12th–88th percentile
+ *  2. Odd/Even      — 2 to 4 odd numbers (rejects pure all-odd or all-even)
+ *  3. Low/High      — 2 to 4 "low" numbers (≤ mid-pool); rejects bunching at one end
+ *  4. No 3+ runs    — rejects sequences like 5-6-7 (very rare in real draws)
+ *  5. Group spread  — divides pool into 6 equal bands; no band contributes > 2 numbers
+ *                     (prevents all 6 numbers bunching in one section of the pool)
+ */
+const validateTicket = (
+  numbers: number[],
+  poolMax: number,
+  sumRange: { min: number; max: number },
+): boolean => {
   if (numbers.length === 6 && poolMax >= 42) {
     const sorted = [...numbers].sort((a, b) => a - b);
-    const oddCount = sorted.filter(n => n % 2 !== 0).length;
-    const lowCount = sorted.filter(n => n <= Math.floor(poolMax / 2)).length;
 
-    // Statistically, the vast majority of real draws have 2–4 odds and 2–4 lows.
+    // 1. Sum range
+    const sum = sorted.reduce((a, b) => a + b, 0);
+    if (sum < sumRange.min || sum > sumRange.max) return false;
+
+    // 2. Odd/Even balance
+    const oddCount = sorted.filter(n => n % 2 !== 0).length;
     if (oddCount < 2 || oddCount > 4) return false;
+
+    // 3. Low/High balance
+    const mid = Math.floor(poolMax / 2);
+    const lowCount = sorted.filter(n => n <= mid).length;
     if (lowCount < 2 || lowCount > 4) return false;
 
-    // Reject runs of 3+ consecutive numbers (e.g. 5-6-7) — very rare in real draws.
+    // 4. No 3+ consecutive runs
     let maxRun = 1;
     let run = 1;
     for (let i = 1; i < sorted.length; i += 1) {
@@ -60,6 +113,15 @@ const validateTicket = (numbers: number[], poolMax: number): boolean => {
       maxRun = Math.max(maxRun, run);
     }
     if (maxRun >= 3) return false;
+
+    // 5. Group spread: split pool into 6 bands, at most 2 numbers per band
+    const bandSize = Math.ceil(poolMax / 6);
+    const bandCounts = new Array<number>(6).fill(0);
+    for (const n of sorted) {
+      const band = Math.min(5, Math.floor((n - 1) / bandSize));
+      bandCounts[band] += 1;
+    }
+    if (bandCounts.some(c => c > 2)) return false;
   }
   return true;
 };
@@ -69,7 +131,7 @@ const validateTicket = (numbers: number[], poolMax: number): boolean => {
  *
  * Two clean signals extracted from draw history (draws[0] = most recent):
  *
- *   freqScore   — normalised historical frequency (0 = rarest, 1 = most common)
+ *   freqScore    — normalised historical frequency (0 = rarest, 1 = most common)
  *   recencyScore — how recently the number appeared (1 = in the latest draw, 0 = never / long ago)
  *   overdueScore — inverse of recency (1 = not seen in a long time, 0 = just appeared)
  *
@@ -109,7 +171,6 @@ const deriveScores = (
   const freqValues = Array.from(frequency.values());
   const minFreq = Math.min(...freqValues);
   const maxFreq = Math.max(...freqValues);
-  // horizon = the furthest back we look; used to normalise lastSeenAt.
   const horizon = Math.max(1, draws.length);
 
   const scores = new Map<number, number>();
@@ -122,39 +183,28 @@ const deriveScores = (
     const freqScore = normalize(freq, minFreq, maxFreq);
 
     // recencyScore: 1 = appeared in the most recent draw, 0 = never / oldest.
-    //   lastSeen=0  → 1 - 0/horizon = 1.0  (very recent)
-    //   lastSeen=horizon → 1 - 1 = 0.0     (never seen)
     const recencyScore = 1 - lastSeen / horizon;
 
-    // overdueScore is the exact inverse — numbers not seen in a long time score high.
+    // overdueScore is the exact inverse.
     const overdueScore = 1 - recencyScore;
 
     let score: number;
 
     switch (strategy) {
       case 'hot':
-        // Favour numbers appearing frequently AND recently.
-        // Both signals point in the same direction — no internal contradiction.
         score = 0.5 * freqScore + 0.5 * recencyScore;
         break;
 
       case 'due':
-        // Favour historically active numbers that have recently gone cold.
-        // freqScore ensures the number has a genuine history; overdueScore measures its absence.
         score = 0.35 * freqScore + 0.65 * overdueScore;
         break;
 
       case 'balanced':
-        // Frequency-dominant with a light recency tiebreaker.
-        // Avoids the extremes of hot/due while still using real historical signal.
         score = 0.65 * freqScore + 0.35 * recencyScore;
         break;
 
       case 'random':
       default:
-        // All numbers get the same base weight → uniform random selection.
-        // We add a tiny per-call noise so that multiple tickets don't all pick
-        // the same "tied" numbers, without biasing toward any historical pattern.
         score = 1.0 + Math.random() * 0.001;
         break;
     }
@@ -176,16 +226,15 @@ export const generateTickets = (
 ): GeneratedTicket[] => {
   const config = SIX_DIGIT_GAMES[options.game];
 
-  // Use up to 2 years of draws for the strategy. More history = more stable frequency counts.
   const relevantDraws = draws
     .filter(draw => draw.game === options.game)
     .sort((a, b) => b.drawDate.getTime() - a.drawDate.getTime())
     .slice(0, 300);
 
+  const sumRange = computeSumRange(relevantDraws, config.poolMax, config.pickCount);
   const scores = deriveScores(relevantDraws, config.poolMax, options.strategy);
   const tickets: GeneratedTicket[] = [];
   const usedSignatures = new Set<string>();
-  // Give the generator plenty of breathing room; validateTicket can reject a lot.
   const maxAttempts = Math.max(500, options.ticketCount * 100);
   let attempts = 0;
 
@@ -204,8 +253,7 @@ export const generateTickets = (
     const signature = numbers.join('-');
 
     if (usedSignatures.has(signature)) continue;
-    if (!validateTicket(numbers, config.poolMax)) continue;
-    // Don't suggest a combination that already won in the last 30 draws.
+    if (!validateTicket(numbers, config.poolMax, sumRange)) continue;
     if (isRecentDuplicate(numbers, relevantDraws.slice(0, 30))) continue;
 
     const avgScore = numbers.reduce((sum, n) => sum + (scores.get(n) ?? 0), 0) / numbers.length;
@@ -219,6 +267,30 @@ export const generateTickets = (
   }
 
   return tickets;
+};
+
+/** Returns display statistics for a generated ticket — used by the UI. */
+export const getTicketStats = (
+  numbers: number[],
+  poolMax: number,
+): {
+  sum: number;
+  oddCount: number;
+  evenCount: number;
+  lowCount: number;
+  highCount: number;
+} => {
+  const sum = numbers.reduce((a, b) => a + b, 0);
+  const oddCount = numbers.filter(n => n % 2 !== 0).length;
+  const mid = Math.floor(poolMax / 2);
+  const lowCount = numbers.filter(n => n <= mid).length;
+  return {
+    sum,
+    oddCount,
+    evenCount: numbers.length - oddCount,
+    lowCount,
+    highCount: numbers.length - lowCount,
+  };
 };
 
 export const getGameConfig = (game: LottoGame): { poolMax: number; pickCount: number } => SIX_DIGIT_GAMES[game];
