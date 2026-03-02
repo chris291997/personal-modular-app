@@ -1,0 +1,37 @@
+name: PCSO Lotto Scraper
+
+on:
+  schedule:
+    # Run daily at 10:15 PM Philippine time (14:15 UTC)
+    # PCSO posts results around 9-10 PM PHT
+    - cron: '15 14 * * *'
+  workflow_dispatch:
+    inputs:
+      months_back:
+        description: 'How many months of history to scrape'
+        required: false
+        default: '3'
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run PCSO scraper
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PCSO_BACKFILL_MONTHS: ${{ github.event.inputs.months_back || '1' }}
+        run: node --loader ts-node/esm scripts/pcso-scrape.ts

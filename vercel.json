@@ -4,11 +4,12 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "vite",
+  "functions": {
+    "api/cron/scraper-sync.ts": { "maxDuration": 10 },
+    "api/cron/send-lotto-reminders.ts": { "maxDuration": 10 },
+    "api/admin-users.ts": { "maxDuration": 10 }
+  },
   "crons": [
-    {
-      "path": "/api/cron/scraper-sync",
-      "schedule": "15 1 * * *"
-    },
     {
       "path": "/api/cron/send-lotto-reminders",
       "schedule": "0 0 * * *"

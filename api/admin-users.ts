@@ -83,7 +83,7 @@ export default async function handler(
 }
 
 async function handleCreateUser(
-  request: VercelRequest,
+  _request: VercelRequest,
   response: VercelResponse,
   userData: unknown
 ) {
@@ -243,7 +243,7 @@ async function handleCreateUser(
 }
 
 async function handleDeleteUser(
-  request: VercelRequest,
+  _request: VercelRequest,
   response: VercelResponse,
   userId: string
 ) {
@@ -279,7 +279,7 @@ async function handleDeleteUser(
 }
 
 async function handleUpdatePassword(
-  request: VercelRequest,
+  _request: VercelRequest,
   response: VercelResponse,
   userId: string | undefined,
   newPassword: string | undefined
@@ -335,7 +335,7 @@ async function handleUpdatePassword(
 }
 
 async function handleResetPassword(
-  request: VercelRequest,
+  _request: VercelRequest,
   response: VercelResponse,
   userData: unknown
 ) {
@@ -371,7 +371,7 @@ async function handleResetPassword(
 }
 
 async function handleSendVerificationEmail(
-  request: VercelRequest,
+  _request: VercelRequest,
   response: VercelResponse,
   userData: unknown
 ) {
