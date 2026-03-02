@@ -23,7 +23,7 @@ function LatestDrawCard({ game, draws }: { game: LottoGame; draws: ReturnType<ty
   const accent = GAME_ACCENT[game];
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-xl border ${accent?.border ?? 'border-gray-200 dark:border-gray-700'} p-3 flex-shrink-0 w-64 md:w-auto`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-xl border ${accent?.border ?? 'border-gray-200 dark:border-gray-700'} p-3 flex-shrink-0 w-52 md:w-auto`}>
       <div className="flex items-center justify-between mb-2">
         <span className={`text-xs font-bold px-2 py-0.5 rounded-full text-white ${accent?.badge ?? 'bg-purple-500'}`}>
           {getGameLabel(game)}
@@ -78,11 +78,14 @@ export default function ResultsTab() {
         <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2 px-0.5">
           Latest Draw Results
         </h3>
-        {/* Horizontal scroll on mobile, grid on md+ */}
-        <div className="flex md:grid md:grid-cols-3 lg:grid-cols-5 gap-3 overflow-x-auto pb-1 md:overflow-visible">
-          {SIX_NUMBER_GAMES.map(g => (
-            <LatestDrawCard key={g} game={g} draws={draws} />
-          ))}
+        {/* Outer wrapper handles the horizontal scroll on mobile */}
+        <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 pb-2">
+          {/* Inner: flex row on mobile (min-w-max prevents squishing), grid on md+ */}
+          <div className="flex gap-3 min-w-max md:min-w-0 md:grid md:grid-cols-3 lg:grid-cols-5">
+            {SIX_NUMBER_GAMES.map(g => (
+              <LatestDrawCard key={g} game={g} draws={draws} />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -105,7 +108,7 @@ export default function ResultsTab() {
           </select>
         </div>
         <button
-          onClick={() => loadDraws(game === 'all' ? undefined : game, true)}
+          onClick={() => loadDraws(undefined, true)}
           className="px-3 py-2 rounded-lg bg-purple-600 text-white text-sm hover:bg-purple-700 transition-colors"
         >
           Sync Latest
