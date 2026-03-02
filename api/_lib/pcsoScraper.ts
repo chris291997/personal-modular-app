@@ -1,7 +1,6 @@
 type LottoGame =
   | 'ultra_6_58'
   | 'grand_6_55'
-  | 'lucky_6_50'
   | 'super_6_49'
   | 'mega_6_45'
   | 'lotto_6_42'
@@ -49,7 +48,6 @@ const toGame = (name: string): LottoGame | null => {
   const normalized = name.toLowerCase().replace(/\s+/g, ' ').trim();
   if (normalized.includes('ultra lotto 6/58')) return 'ultra_6_58';
   if (normalized.includes('grand lotto 6/55')) return 'grand_6_55';
-  if (normalized.includes('lotto 6/50')) return 'lucky_6_50';
   if (normalized.includes('superlotto 6/49') || normalized.includes('super lotto 6/49')) return 'super_6_49';
   if (normalized.includes('megalotto 6/45') || normalized.includes('mega lotto 6/45')) return 'mega_6_45';
   if (normalized.includes('lotto 6/42')) return 'lotto_6_42';

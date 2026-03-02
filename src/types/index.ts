@@ -102,7 +102,6 @@ export interface TaskFilter {
 export type LottoGame =
   | 'ultra_6_58'
   | 'grand_6_55'
-  | 'lucky_6_50'
   | 'super_6_49'
   | 'mega_6_45'
   | 'lotto_6_42'

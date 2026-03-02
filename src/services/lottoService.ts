@@ -200,7 +200,6 @@ export const getGameLabel = (game: LottoGame): string => {
   const labels: Record<LottoGame, string> = {
     ultra_6_58: 'Ultra Lotto 6/58',
     grand_6_55: 'Grand Lotto 6/55',
-    lucky_6_50: 'Lotto 6/50',
     super_6_49: 'Super Lotto 6/49',
     mega_6_45: 'Mega Lotto 6/45',
     lotto_6_42: 'Lotto 6/42',
@@ -219,7 +218,6 @@ export const getGameLabel = (game: LottoGame): string => {
 export const SIX_NUMBER_GAMES: LottoGame[] = [
   'ultra_6_58',
   'grand_6_55',
-  'lucky_6_50',
   'super_6_49',
   'mega_6_45',
   'lotto_6_42',
@@ -228,7 +226,6 @@ export const SIX_NUMBER_GAMES: LottoGame[] = [
 export const DEFAULT_LOTTO_GAMES: LottoGame[] = [
   'ultra_6_58',
   'grand_6_55',
-  'lucky_6_50',
   'super_6_49',
   'mega_6_45',
   'lotto_6_42',

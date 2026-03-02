@@ -18,7 +18,7 @@ import admin from 'firebase-admin';
 
 type LottoGame =
   | 'lotto_6_42' | 'mega_6_45' | 'super_6_49'
-  | 'grand_6_55' | 'ultra_6_58' | 'lucky_6_50';
+  | 'grand_6_55' | 'ultra_6_58';
 
 type ScrapedDraw = {
   game: LottoGame;
@@ -165,7 +165,6 @@ const toGame = (name: string): LottoGame | null => {
   if (n.includes('6/55') || n.includes('grand')) return 'grand_6_55';
   if (n.includes('6/49') || n.includes('super')) return 'super_6_49';
   if (n.includes('6/45') || n.includes('mega'))  return 'mega_6_45';
-  if (n.includes('6/50') || n.includes('lucky 6/50')) return 'lucky_6_50';
   if (n.includes('6/42') || n.includes('lotto 6/42')) return 'lotto_6_42';
   return null;
 };

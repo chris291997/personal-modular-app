@@ -9,7 +9,6 @@ type ScheduleRule = {
 const RULES: Record<LottoGame, ScheduleRule> = {
   ultra_6_58: { daysOfWeek: [2, 4, 6], hour: 21, minute: 0 },
   grand_6_55: { daysOfWeek: [1, 3, 6], hour: 21, minute: 0 },
-  lucky_6_50: { daysOfWeek: [2, 4, 7], hour: 21, minute: 0 },
   super_6_49: { daysOfWeek: [2, 4, 7], hour: 21, minute: 0 },
   mega_6_45: { daysOfWeek: [1, 3, 5], hour: 21, minute: 0 },
   lotto_6_42: { daysOfWeek: [2, 4, 6], hour: 21, minute: 0 },

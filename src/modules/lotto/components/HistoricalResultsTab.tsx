@@ -7,7 +7,6 @@ const GAME_SHORT_LABELS: Record<LottoGame, string> = {
   lotto_6_42: '6/42',
   mega_6_45: '6/45',
   super_6_49: '6/49',
-  lucky_6_50: '6/50',
   grand_6_55: '6/55',
   ultra_6_58: '6/58',
   '6d': '6D',

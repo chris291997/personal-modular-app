@@ -9,7 +9,6 @@ interface GenerateOptions {
 const SIX_DIGIT_GAMES: Record<LottoGame, { poolMax: number; pickCount: number }> = {
   ultra_6_58: { poolMax: 58, pickCount: 6 },
   grand_6_55: { poolMax: 55, pickCount: 6 },
-  lucky_6_50: { poolMax: 50, pickCount: 6 },
   super_6_49: { poolMax: 49, pickCount: 6 },
   mega_6_45: { poolMax: 45, pickCount: 6 },
   lotto_6_42: { poolMax: 42, pickCount: 6 },
