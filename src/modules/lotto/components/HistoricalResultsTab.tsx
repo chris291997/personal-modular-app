@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { getGameLabel, SIX_NUMBER_GAMES } from '../../../services/lottoService';
 import { LottoGame } from '../../../types';
 import { useLottoStore } from '../../../stores/lottoStore';
+import { useTriggerScraper } from '../../../hooks/useTriggerScraper';
 
 const GAME_SHORT_LABELS: Record<LottoGame, string> = {
   lotto_6_42: '6/42',
@@ -22,6 +23,7 @@ const GAME_SHORT_LABELS: Record<LottoGame, string> = {
 export default function HistoricalResultsTab() {
   const { draws, loading, loadDraws } = useLottoStore();
   const [selectedGame, setSelectedGame] = useState<LottoGame>('lotto_6_42');
+  const { trigger, feedbackMsg, isDisabled, buttonLabel, buttonClass } = useTriggerScraper();
 
   const grouped = useMemo(
     () =>
@@ -40,19 +42,29 @@ export default function HistoricalResultsTab() {
 
   return (
     <div className="space-y-4">
+      {/* Game switcher */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 md:p-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-          <h3 className="text-sm md:text-base font-semibold text-gray-900 dark:text-white">
-            Quick Game Switcher
-          </h3>
-          <button
-            onClick={() => loadDraws(undefined, true)}
-            className="px-3 py-2 rounded-lg bg-purple-600 text-white text-sm hover:bg-purple-700"
-          >
-            Refresh Historical Results
-          </button>
+          <h3 className="text-sm md:text-base font-semibold text-gray-900 dark:text-white">Quick Game Switcher</h3>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => loadDraws(undefined, true)}
+              className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-300 dark:hover:bg-gray-600"
+            >
+              Reload
+            </button>
+            <button
+              onClick={() => trigger('3')}
+              disabled={isDisabled}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${buttonClass}`}
+            >
+              {buttonLabel}
+            </button>
+          </div>
         </div>
-
+        {feedbackMsg && (
+          <p className="text-xs mb-2 text-green-600 dark:text-green-400">{feedbackMsg}</p>
+        )}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3">
           {SIX_NUMBER_GAMES.map(game => {
             const isActive = selectedGame === game;
@@ -60,7 +72,7 @@ export default function HistoricalResultsTab() {
               <button
                 key={game}
                 onClick={() => setSelectedGame(game)}
-                className={`min-h-[56px] md:min-h-[64px] rounded-xl border text-sm md:text-base font-semibold transition-all ${
+                className={`min-h-[48px] md:min-h-[56px] rounded-xl border text-sm font-semibold transition-all ${
                   isActive
                     ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white border-transparent shadow-md'
                     : 'bg-gray-50 dark:bg-gray-700/40 text-gray-800 dark:text-gray-100 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -73,51 +85,53 @@ export default function HistoricalResultsTab() {
         </div>
       </div>
 
-      {selectedGroup && (
-        <section
-          key={selectedGroup.game}
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
-        >
-          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-sm md:text-base font-semibold text-gray-900 dark:text-white">
-              {selectedGroup.label} Historical Results
-            </h3>
-          </div>
-
-          {selectedGroup.rows.length === 0 ? (
-            <p className="px-4 py-4 text-sm text-gray-600 dark:text-gray-300">
-              No historical results synced yet for this game.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50/60 dark:bg-gray-700/20">
-                  <tr>
-                    <th className="text-left px-4 py-2 text-gray-600 dark:text-gray-300">Draw Date</th>
-                    <th className="text-left px-4 py-2 text-gray-600 dark:text-gray-300">Combination</th>
-                    <th className="text-left px-4 py-2 text-gray-600 dark:text-gray-300">Jackpot</th>
-                    <th className="text-left px-4 py-2 text-gray-600 dark:text-gray-300">Winners</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedGroup.rows.map(row => (
-                    <tr key={row.id} className="border-t border-gray-100 dark:border-gray-700">
-                      <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{row.drawDate.toLocaleDateString()}</td>
-                      <td className="px-4 py-2 font-mono text-gray-900 dark:text-gray-100">{row.combination.join(' - ')}</td>
-                      <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{row.jackpot?.toLocaleString() || 'N/A'}</td>
-                      <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{row.winners ?? 'N/A'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      {/* Results — normal page flow, footer stays visible via pb-24 in Layout */}
+      <div>
+        {selectedGroup && (
+          <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-sm md:text-base font-semibold text-gray-900 dark:text-white">
+                {selectedGroup.label} Historical Results
+              </h3>
             </div>
-          )}
-        </section>
-      )}
 
-      {loading.draws && (
-        <p className="text-sm text-gray-600 dark:text-gray-300 text-center py-4">Loading draw results...</p>
-      )}
+            {selectedGroup.rows.length === 0 ? (
+              <p className="px-4 py-6 text-sm text-gray-600 dark:text-gray-300">
+                No historical results synced yet for this game.
+              </p>
+            ) : (
+              /* max-h caps the table so only IT scrolls — the page itself never overflows,
+                 which keeps the footer always visible without any flex height tricks. */
+              <div className="overflow-x-auto overflow-y-auto max-h-[45vh]" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <table className="w-full text-sm min-w-[380px]">
+                  <thead className="sticky top-0 bg-gray-50 dark:bg-gray-700 z-10">
+                    <tr>
+                      <th className="text-left px-4 py-2 text-gray-600 dark:text-gray-300">Draw Date</th>
+                      <th className="text-left px-4 py-2 text-gray-600 dark:text-gray-300">Combination</th>
+                      <th className="text-left px-4 py-2 text-gray-600 dark:text-gray-300">Jackpot</th>
+                      <th className="text-left px-4 py-2 text-gray-600 dark:text-gray-300">Winners</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedGroup.rows.map(row => (
+                      <tr key={row.id} className="border-t border-gray-100 dark:border-gray-700">
+                        <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{row.drawDate.toLocaleDateString()}</td>
+                        <td className="px-4 py-2 font-mono text-gray-900 dark:text-gray-100">{row.combination.join(' - ')}</td>
+                        <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{row.jackpot?.toLocaleString() || 'N/A'}</td>
+                        <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{row.winners ?? 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        )}
+
+        {loading.draws && (
+          <p className="text-sm text-gray-600 dark:text-gray-300 text-center py-4">Loading...</p>
+        )}
+      </div>
     </div>
   );
 }

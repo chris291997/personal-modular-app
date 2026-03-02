@@ -6,9 +6,12 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
+export type ScraperMode = 'timed' | 'always';
+
 export interface SiteSettings {
   currency: string;
   currencySymbol: string;
+  scraperMode: ScraperMode;
   updatedAt: Date;
 }
 
@@ -24,6 +27,7 @@ export const getSiteSettings = async (): Promise<SiteSettings> => {
       return {
         currency: data.currency || 'PHP',
         currencySymbol: data.currencySymbol || '₱',
+        scraperMode: (data.scraperMode as ScraperMode) || 'timed',
         updatedAt: data.updatedAt?.toDate() || new Date(),
       };
     }
@@ -32,6 +36,7 @@ export const getSiteSettings = async (): Promise<SiteSettings> => {
     return {
       currency: 'PHP',
       currencySymbol: '₱',
+      scraperMode: 'timed',
       updatedAt: new Date(),
     };
   } catch (error) {
@@ -40,6 +45,7 @@ export const getSiteSettings = async (): Promise<SiteSettings> => {
     return {
       currency: 'PHP',
       currencySymbol: '₱',
+      scraperMode: 'timed',
       updatedAt: new Date(),
     };
   }
@@ -60,6 +66,7 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promi
       {
         currency: updatedSettings.currency,
         currencySymbol: updatedSettings.currencySymbol,
+        scraperMode: updatedSettings.scraperMode,
         updatedAt: Timestamp.fromDate(updatedSettings.updatedAt),
       }
     );

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getSiteSettings, updateSiteSettings, SiteSettings } from '../../services/siteSettingsService';
+import { getSiteSettings, updateSiteSettings, SiteSettings, ScraperMode } from '../../services/siteSettingsService';
 import { getCurrentUser, isAdmin } from '../../services/authService';
 import { Settings, Save, AlertCircle } from 'lucide-react';
 
@@ -192,6 +192,56 @@ export default function SiteSettingsModule() {
                     <strong>Preview:</strong> {settings.currencySymbol}1,234.56
                   </p>
                 </div>
+              </div>
+            </div>
+
+            {/* Scraper Mode */}
+            <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Scraper Trigger Mode
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                Controls when the "Run Scraper" button in the Lotto module can be used.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {(
+                  [
+                    {
+                      value: 'timed' as ScraperMode,
+                      label: 'Timed',
+                      description: 'Once per day slot — 8 AM–5 PM (day) and 5 PM–1 AM (night). Prevents accidental double-triggering.',
+                    },
+                    {
+                      value: 'always' as ScraperMode,
+                      label: 'Always Enabled',
+                      description: 'Button is always clickable with no time or frequency restrictions.',
+                    },
+                  ] as { value: ScraperMode; label: string; description: string }[]
+                ).map(option => {
+                  const active = settings.scraperMode === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setSettings({ ...settings, scraperMode: option.value })}
+                      className={`text-left p-4 rounded-xl border-2 transition-all ${
+                        active
+                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`w-3 h-3 rounded-full flex-none ${active ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                        <span className={`text-sm font-semibold ${active ? 'text-purple-700 dark:text-purple-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                          {option.label}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 pl-5">
+                        {option.description}
+                      </p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

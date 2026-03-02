@@ -117,8 +117,9 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="relative z-10 flex-1 md:ml-20">
+      {/* overflow-x-hidden here (on a non-body div) blocks horizontal page scroll
+          without affecting child overflow-x-auto scroll containers (safe on iOS Safari) */}
+      <div className="relative z-10 flex-1 md:ml-20 overflow-x-hidden">
         {/* Top Navigation */}
         <nav className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
           <div className="w-full max-w-full mx-auto px-2 sm:px-3 md:px-4 lg:px-6 xl:px-8">
@@ -177,8 +178,8 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </nav>
 
-        {/* Main Content */}
-        <main className="w-full max-w-full mx-auto px-2 sm:px-3 md:px-4 lg:px-6 xl:px-8 py-4 md:py-8 min-h-[calc(100vh-4rem)] pb-20 md:pb-8">
+        {/* Main Content — pb-24 on mobile ensures last item clears the fixed bottom nav */}
+        <main className="w-full max-w-full mx-auto px-2 sm:px-3 md:px-4 lg:px-6 xl:px-8 py-4 md:py-8 pb-24 md:pb-8">
           {children}
         </main>
 

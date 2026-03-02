@@ -28,7 +28,7 @@ export default function LottoModule() {
   ];
 
   return (
-    <div className="w-full space-y-4 md:space-y-6 pb-20 md:pb-8">
+    <div className="w-full space-y-4 md:space-y-6">
       <div className="text-center space-y-2">
         <h1 className="text-xl md:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-400 dark:to-indigo-400 bg-clip-text text-transparent">
           Lotto Insights
