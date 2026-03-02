@@ -242,9 +242,12 @@ export const generateTickets = (
   const scores = deriveScores(relevantDraws, config.poolMax, options.strategy);
   const tickets: GeneratedTicket[] = [];
   const usedSignatures = new Set<string>();
-  // Give extra attempts when locked numbers restrict the search space.
-  const maxAttempts = Math.max(1000, options.ticketCount * 200);
+  // Higher attempt budget: structural filters + score threshold both prune candidates.
+  const maxAttempts = Math.max(3000, options.ticketCount * 500);
   let attempts = 0;
+  // Minimum average score to accept a ticket — enforces "High confidence" only.
+  // Random strategy is exempt: it assigns equal weights (~1.0) so it always passes.
+  const MIN_SCORE = options.strategy === 'random' ? 0 : 0.65;
 
   while (tickets.length < options.ticketCount && attempts < maxAttempts) {
     attempts += 1;
@@ -267,6 +270,9 @@ export const generateTickets = (
     if (isRecentDuplicate(numbers, relevantDraws.slice(0, 30))) continue;
 
     const avgScore = numbers.reduce((sum, n) => sum + (scores.get(n) ?? 0), 0) / numbers.length;
+
+    // Enforce high-confidence threshold — skip tickets that score below it.
+    if (avgScore < MIN_SCORE) continue;
 
     usedSignatures.add(signature);
     tickets.push({

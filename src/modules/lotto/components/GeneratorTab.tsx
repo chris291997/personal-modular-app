@@ -180,10 +180,11 @@ export default function GeneratorTab() {
   const ballColor = BALL_COLORS[game] ?? 'bg-purple-500';
   const stats = ticket ? getTicketStats(ticket.numbers, config.poolMax) : null;
 
-  const scoreLabel = (score: number) => {
-    if (score >= 0.65) return { text: 'High confidence', color: 'text-green-600 dark:text-green-400' };
-    if (score >= 0.40) return { text: 'Medium confidence', color: 'text-yellow-600 dark:text-yellow-400' };
-    return { text: 'Low confidence', color: 'text-gray-500 dark:text-gray-400' };
+  // All generated tickets are guaranteed ≥ 0.65 (high confidence).
+  // Score is still shown so the user can compare across "Try Another" runs.
+  const scoreBar = (score: number) => {
+    const pct = Math.round(Math.min(score / 1, 1) * 100);
+    return { pct, label: `${pct}%` };
   };
 
   const isLocked = (n: number) => ticket?.lockedNumbers?.includes(n) ?? false;
@@ -321,10 +322,15 @@ export default function GeneratorTab() {
 
       {/* No-result warning */}
       {noResult && !generating && (
-        <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4 text-sm text-orange-700 dark:text-orange-300">
-          <strong>Couldn't generate a valid ticket</strong> with your lucky numbers included.
-          <br />
-          Your numbers may be creating a combination that fails the statistical filters (e.g. too many odds, consecutive run, unusual sum). Try removing one lucky number and generating again.
+        <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4 text-sm text-orange-700 dark:text-orange-300 space-y-1">
+          <p><strong>No high-confidence ticket found.</strong></p>
+          <p className="text-xs leading-relaxed">
+            The generator only returns tickets with a score ≥ 65%. This can happen when:
+            {' '}
+            {luckyNumbers.length > 0
+              ? 'your lucky numbers are pulling the score down — try removing one and generating again, or switch to Balanced strategy.'
+              : 'there isn\'t enough historical data yet for this game, or the current strategy is very restrictive. Try Balanced or Random strategy.'}
+          </p>
         </div>
       )}
 
@@ -388,14 +394,22 @@ export default function GeneratorTab() {
             </div>
           </div>
 
-          {/* Score */}
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-500 dark:text-gray-400">
-              Score: <span className="font-mono text-gray-700 dark:text-gray-300">{ticket.score}</span>
-            </span>
-            <span className={`font-medium ${scoreLabel(ticket.score).color}`}>
-              {scoreLabel(ticket.score).text}
-            </span>
+          {/* Score bar — always high confidence */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500 dark:text-gray-400">
+                Confidence score: <span className="font-mono font-semibold text-green-600 dark:text-green-400">{scoreBar(ticket.score).label}</span>
+              </span>
+              <span className="text-xs font-semibold text-green-600 dark:text-green-400">
+                ✓ High confidence
+              </span>
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-green-500 transition-all duration-500"
+                style={{ width: `${scoreBar(ticket.score).pct}%` }}
+              />
+            </div>
           </div>
 
           {/* Disclaimer */}

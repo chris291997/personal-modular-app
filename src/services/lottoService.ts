@@ -50,6 +50,9 @@ const mapBet = (id: string, data: Record<string, unknown>): LottoBet => ({
   resultStatus: (data.resultStatus as LottoBet['resultStatus']) || 'pending',
   matchedCount: typeof data.matchedCount === 'number' ? data.matchedCount : undefined,
   winnings: typeof data.winnings === 'number' ? data.winnings : undefined,
+  isPlaced: Boolean(data.isPlaced),
+  placedAt: data.placedAt ? (data.placedAt as Timestamp).toDate() : undefined,
+  expenseId: typeof data.expenseId === 'string' ? data.expenseId : undefined,
   createdAt: (data.createdAt as Timestamp)?.toDate?.() || new Date(),
   updatedAt: (data.updatedAt as Timestamp)?.toDate?.() || new Date(),
 });
@@ -149,6 +152,9 @@ export const updateBet = async (id: string, updates: Partial<LottoBet>): Promise
   if (updates.resultStatus !== undefined) updatePayload.resultStatus = updates.resultStatus;
   if (updates.matchedCount !== undefined) updatePayload.matchedCount = updates.matchedCount;
   if (updates.winnings !== undefined) updatePayload.winnings = updates.winnings;
+  if (updates.isPlaced !== undefined) updatePayload.isPlaced = updates.isPlaced;
+  if (updates.placedAt !== undefined) updatePayload.placedAt = Timestamp.fromDate(updates.placedAt);
+  if (updates.expenseId !== undefined) updatePayload.expenseId = updates.expenseId;
 
   await updateDoc(doc(db, 'lotto_bets', id), updatePayload);
 };

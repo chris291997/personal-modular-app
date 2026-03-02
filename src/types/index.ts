@@ -136,7 +136,7 @@ export interface LottoDrawResult extends BaseEntity {
   source: 'pcso_scraper';
 }
 
-export interface LottoBet extends BaseEntity {
+export interface LottoBet extends BaseEntity, Partial<LottoBetPlacement> {
   game: LottoGame;
   drawDate: Date;
   pickedNumbers: number[];
@@ -155,6 +155,12 @@ export interface LottoReminder extends BaseEntity {
   notifyTime: string; // HH:mm in Asia/Manila
   channels: LottoNotificationChannel[];
   lastSentForDraw?: string;
+}
+
+export interface LottoBetPlacement {
+  isPlaced: boolean;
+  placedAt?: Date;
+  expenseId?: string; // Firestore ID of the budget expense created when placed
 }
 
 export interface GeneratedTicket {

@@ -49,7 +49,7 @@ interface BudgetState {
   updateIncome: (id: string, updates: Partial<Income>) => Promise<void>;
   deleteIncome: (id: string) => Promise<void>;
   
-  addExpense: (expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  addExpense: (expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
   updateExpense: (id: string, updates: Partial<Expense>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   
@@ -287,13 +287,14 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
   
   // Expense CRUD
   addExpense: async (expense) => {
-    await budgetService.addExpense(expense);
+    const id = await budgetService.addExpense(expense);
     // Try to refresh, but don't fail if refresh fails
     try {
       await get().loadExpenses(undefined, undefined, true); // Force refresh
     } catch (refreshError) {
       console.warn('Failed to refresh expenses after add, but add succeeded:', refreshError);
     }
+    return id;
   },
   
   updateExpense: async (id, updates) => {
