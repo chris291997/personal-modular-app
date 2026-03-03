@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { 
   TrendingUp, TrendingDown, Wallet, CreditCard, Target, 
   DollarSign, ArrowUpRight, ArrowDownRight, HelpCircle
@@ -9,6 +9,14 @@ import { BarChart3 } from 'lucide-react';
 import ConsultForm from '../../../components/ConsultForm';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { useBudgetStore } from '../../../stores/budgetStore';
+import {
+  calculateMonthlyIncome,
+  calculateMonthlyExpenses,
+  calculateCurrentCutoffDebtPayments,
+  calculateOnHandBalance,
+  getFrequencyMultiplier,
+} from '../../../utils/budgetCalculations';
+import { getDebtPaymentsByCutoff } from '../../../utils/debtCutoff';
 
 export default function DashboardTab() {
   const { formatCurrency } = useCurrency();
@@ -19,59 +27,28 @@ export default function DashboardTab() {
     expenses,
     debts,
     savingsGoals,
+    categories,
     loading,
     loadIncomes,
     loadExpenses,
     loadDebts,
     loadSavingsGoals,
+    loadCategories,
   } = useBudgetStore();
 
   useEffect(() => {
-    // Load data from store (will use cache if available)
-    const now = new Date();
-    const start = startOfMonth(now);
-    const end = endOfMonth(now);
-    
-    loadIncomes(start, end);
-    loadExpenses(start, end);
-    loadDebts();
-    loadSavingsGoals();
-  }, [loadIncomes, loadExpenses, loadDebts, loadSavingsGoals]);
+    // Load ALL incomes/expenses (no date filter) so recurring items from any month are included in monthly calc
+    loadIncomes(undefined, undefined, true);
+    loadExpenses(undefined, undefined, true);
+    loadDebts(true);
+    loadSavingsGoals(true);
+    loadCategories(true);
+  }, [loadIncomes, loadExpenses, loadDebts, loadSavingsGoals, loadCategories]);
 
+  const isLoading = loading.incomes || loading.expenses || loading.debts || loading.savingsGoals || loading.categories;
 
-  const calculateMonthlyIncome = () => {
-    return incomes.reduce((sum, income) => {
-      const multiplier = getFrequencyMultiplier(income.frequency);
-      return sum + (income.amount * multiplier);
-    }, 0);
-  };
-
-  const calculateMonthlyExpenses = () => {
-    return expenses.reduce((sum, expense) => {
-      if (expense.isRecurring && expense.recurringFrequency) {
-        const multiplier = getFrequencyMultiplier(expense.recurringFrequency);
-        return sum + (expense.amount * multiplier);
-      }
-      return sum;
-    }, 0);
-  };
-
-  const calculateMonthlyDebtPayments = () => {
-    return debts.reduce((sum, debt) => sum + debt.minimumPayment, 0);
-  };
-
-  const getFrequencyMultiplier = (frequency: string): number => {
-    switch (frequency) {
-      case 'daily': return 30;
-      case 'weekly': return 4.33;
-      case 'biweekly': return 2.17;
-      case 'monthly': return 1;
-      case 'yearly': return 1 / 12;
-      default: return 1;
-    }
-  };
-
-  const isLoading = loading.incomes || loading.expenses || loading.debts || loading.savingsGoals;
+  const getCategoryName = (categoryId: string) =>
+    categories.find((c) => c.id === categoryId)?.name ?? 'Other';
   
   if (isLoading) {
     return (
@@ -81,31 +58,45 @@ export default function DashboardTab() {
     );
   }
 
-  const monthlyIncome = calculateMonthlyIncome();
-  const monthlyExpenses = calculateMonthlyExpenses();
-  const monthlyDebtPayments = calculateMonthlyDebtPayments();
-  const availableBudget = monthlyIncome - monthlyExpenses - monthlyDebtPayments;
+  const now = new Date();
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
+
+  const monthlyIncome = calculateMonthlyIncome(incomes, now);
+  const monthlyExpenses = calculateMonthlyExpenses(expenses, now);
+  const { cutoff1, cutoff2 } = getDebtPaymentsByCutoff(debts, now.getFullYear(), now.getMonth());
+  const onHandBalance = calculateOnHandBalance(incomes, expenses, now);
+  const currentCutoffDue = calculateCurrentCutoffDebtPayments(debts);
+  const availableBudget = onHandBalance - currentCutoffDue;
   const totalDebt = debts.reduce((sum, debt) => sum + debt.remainingAmount, 0);
   const totalSavings = savingsGoals.reduce((sum, goal) => sum + goal.currentAmount, 0);
 
-  // Chart data
+  // Chart data — monthly contribution per category (recurring + one-time this month)
   const expenseByCategory = expenses.reduce((acc, expense) => {
-    const category = expense.categoryId || 'Other';
-    acc[category] = (acc[category] || 0) + expense.amount;
+    const categoryId = expense.categoryId || 'Other';
+    let amount = 0;
+    if (expense.isRecurring && expense.recurringFrequency) {
+      amount = expense.amount * getFrequencyMultiplier(expense.recurringFrequency);
+    } else if (isWithinInterval(expense.date, { start: monthStart, end: monthEnd })) {
+      amount = expense.amount;
+    }
+    if (amount > 0) {
+      acc[categoryId] = (acc[categoryId] || 0) + amount;
+    }
     return acc;
   }, {} as Record<string, number>);
 
-  const pieData = Object.entries(expenseByCategory).map(([name, value]) => ({
-    name,
+  const pieData = Object.entries(expenseByCategory).map(([categoryId, value]) => ({
+    name: getCategoryName(categoryId),
     value: Number(value.toFixed(2)),
   }));
 
   const COLORS = ['#8b5cf6', '#6366f1', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
 
   const monthlyData = [
-    { name: 'Income', amount: monthlyIncome, color: '#10b981' },
+    { name: 'Balance', amount: onHandBalance, color: '#10b981' },
     { name: 'Expenses', amount: monthlyExpenses, color: '#ef4444' },
-    { name: 'Debts', amount: monthlyDebtPayments, color: '#f59e0b' },
+    { name: 'Debts', amount: cutoff1 + cutoff2, color: '#f59e0b' },
   ];
 
   return (
@@ -148,12 +139,13 @@ export default function DashboardTab() {
             <div className="w-full bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl md:rounded-2xl p-2 md:p-3 lg:p-4 text-white shadow-xl">
               <div className="flex items-center justify-between mb-2 md:mb-3">
                 <div className="w-7 h-7 md:w-8 md:h-8 lg:w-10 lg:h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm flex-shrink-0">
-                  <TrendingUp className="w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5" />
+                  <Wallet className="w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5" />
                 </div>
                 <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5 opacity-70 flex-shrink-0" />
               </div>
-              <p className="text-purple-100 text-[10px] md:text-xs mb-1">Monthly Income</p>
-              <p className="text-sm md:text-base lg:text-xl font-bold leading-tight truncate">{formatCurrency(monthlyIncome)}</p>
+              <p className="text-purple-100 text-[10px] md:text-xs mb-1">Balance (On-hand)</p>
+              <p className="text-sm md:text-base lg:text-xl font-bold leading-tight truncate">{formatCurrency(onHandBalance)}</p>
+              <p className="text-purple-200/80 text-[9px] mt-0.5">Before debt payments</p>
             </div>
 
             <div className="w-full bg-gradient-to-br from-red-500 to-pink-600 rounded-xl md:rounded-2xl p-2 md:p-3 lg:p-4 text-white shadow-xl">
@@ -216,7 +208,10 @@ export default function DashboardTab() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => {
+                const pct = percent * 100;
+                return `${name} ${pct < 0.5 && pct > 0 ? '<1' : pct.toFixed(1)}%`;
+              }}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
@@ -269,7 +264,7 @@ export default function DashboardTab() {
               <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(totalDebt)}</p>
             </div>
           </div>
-          <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Monthly Payments: {formatCurrency(monthlyDebtPayments)}</p>
+          <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Cutoff 1 (1–15): {formatCurrency(cutoff1)} · Cutoff 2 (16–30): {formatCurrency(cutoff2)}</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
@@ -278,8 +273,11 @@ export default function DashboardTab() {
               <DollarSign className="w-5 h-5 md:w-6 md:h-6 text-white" />
             </div>
             <div>
-              <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Debt Payments</p>
-              <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(monthlyDebtPayments)}</p>
+              <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Debt Payments (per cutoff)</p>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                <span className="text-base font-semibold text-gray-800 dark:text-gray-200">Cutoff 1 (1–15): {formatCurrency(cutoff1)}</span>
+                <span className="text-base font-semibold text-gray-800 dark:text-gray-200">Cutoff 2 (16–30): {formatCurrency(cutoff2)}</span>
+              </div>
             </div>
           </div>
           <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Active Debts: {debts.length}</p>
@@ -290,9 +288,14 @@ export default function DashboardTab() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-700">
           <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-3 md:mb-4">Recent Expenses</h3>
-          {expenses.slice(0, 5).length > 0 ? (
+          {(() => {
+            const thisMonthExpenses = expenses
+              .filter(e => isWithinInterval(e.date, { start: monthStart, end: monthEnd }))
+              .sort((a, b) => b.date.getTime() - a.date.getTime())
+              .slice(0, 5);
+            return thisMonthExpenses.length > 0 ? (
             <div className="space-y-3">
-              {expenses.slice(0, 5).map(expense => (
+              {thisMonthExpenses.map(expense => (
                 <div key={expense.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <div className="flex-1">
                     <p className="font-medium text-gray-900 dark:text-white">{expense.description}</p>
@@ -304,7 +307,8 @@ export default function DashboardTab() {
             </div>
           ) : (
             <p className="text-center text-gray-500 dark:text-gray-400 py-8">No expenses this month</p>
-          )}
+          );
+          })()}
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-700">

@@ -8,6 +8,7 @@ import { getCurrentUser, subscribeToAuthState } from '../services/authService';
 import { User } from '../types/user';
 import { useBudgetStore } from '../stores/budgetStore';
 import { useTaskStore } from '../stores/taskStore';
+import { calculateAvailableBudget } from '../utils/budgetCalculations';
 
 export default function Home() {
   const modules = getEnabledModules();
@@ -15,7 +16,7 @@ export default function Home() {
   const { formatCurrency } = useCurrency();
   
   // Use stores
-  const { incomes, expenses, loadIncomes, loadExpenses } = useBudgetStore();
+  const { incomes, expenses, debts, loadIncomes, loadExpenses, loadDebts } = useBudgetStore();
   const { tickets, loadTickets } = useTaskStore();
 
   useEffect(() => {
@@ -31,15 +32,15 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    // Load data from stores (will use cache if available)
-    loadIncomes();
-    loadExpenses();
+    // Force refresh budget data so Balance/Available Budget reflect debt payments
+    loadIncomes(undefined, undefined, true);
+    loadExpenses(undefined, undefined, true);
+    loadDebts(true);
     loadTickets();
-  }, [loadIncomes, loadExpenses, loadTickets]);
+  }, [loadIncomes, loadExpenses, loadDebts, loadTickets]);
 
-  // Calculate derived values from store data
-  const totalBalance = incomes.reduce((sum, inc) => sum + (inc.amount || 0), 0) - 
-                       expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+  // Total Balance = Available Budget (same formula as Budget Dashboard)
+  const totalBalance = calculateAvailableBudget(incomes, expenses, debts);
   const activeTasks = tickets.length;
   const savingsGoals = 0; // Will be calculated from store when needed
 

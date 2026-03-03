@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Income } from '../../../types';
+
+const FREQUENCY_LABELS: Record<Income['frequency'], string> = {
+  one_time: 'One-time',
+  daily: 'Daily',
+  weekly: 'Weekly',
+  biweekly: 'Biweekly',
+  monthly: 'Monthly',
+  yearly: 'Yearly',
+};
 import { format } from 'date-fns';
 import { Plus, Edit2, Trash2, TrendingUp } from 'lucide-react';
 import { useCurrency } from '../../../hooks/useCurrency';
@@ -158,6 +167,7 @@ export default function IncomeTab() {
                   onChange={(e) => setFormData({ ...formData, frequency: e.target.value as Income['frequency'] })}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
+                  <option value="one_time">One-time</option>
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
                   <option value="biweekly">Biweekly</option>
@@ -241,7 +251,7 @@ export default function IncomeTab() {
                         {formatCurrency(income.amount)}
                       </p>
                       <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">
-                        {income.frequency}
+                        {FREQUENCY_LABELS[income.frequency]}
                       </p>
                     </div>
                   </div>
@@ -296,7 +306,7 @@ export default function IncomeTab() {
                         {formatCurrency(income.amount)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 capitalize">
-                        {income.frequency}
+                        {FREQUENCY_LABELS[income.frequency]}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                         {income.notes || '-'}

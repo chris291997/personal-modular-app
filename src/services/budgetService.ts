@@ -264,8 +264,9 @@ export const updateExpense = async (id: string, updates: Partial<Expense>): Prom
   if (updates.isRecurring !== undefined) updateData.isRecurring = updates.isRecurring;
   if (updates.recurringFrequency !== undefined) updateData.recurringFrequency = updates.recurringFrequency;
   if (updates.nextDueDate !== undefined) updateData.nextDueDate = Timestamp.fromDate(updates.nextDueDate);
+  if (updates.lastPaidMonth !== undefined) updateData.lastPaidMonth = updates.lastPaidMonth;
   if (updates.notes !== undefined && updates.notes !== '') updateData.notes = updates.notes;
-  
+
   await updateDoc(expenseRef, updateData);
 };
 
@@ -411,7 +412,8 @@ export const updateDebt = async (id: string, updates: Partial<Debt>): Promise<vo
   if (updates.paidSchedules !== undefined) updateData.paidSchedules = updates.paidSchedules;
   if (updates.oneTimeDueDate !== undefined) updateData.oneTimeDueDate = updates.oneTimeDueDate;
   if (updates.secondDueDate !== undefined) updateData.secondDueDate = updates.secondDueDate;
-  
+  if (updates.paidCutoffKeys !== undefined) updateData.paidCutoffKeys = updates.paidCutoffKeys;
+
   await updateDoc(debtRef, updateData);
 };
 
@@ -638,6 +640,8 @@ export const calculateConsult = async (input: ConsultInput): Promise<ConsultResu
 
 const getFrequencyMultiplier = (frequency: string): number => {
   switch (frequency) {
+    case 'one_time':
+      return 1; // Counts when in date range
     case 'daily':
       return 30;
     case 'weekly':

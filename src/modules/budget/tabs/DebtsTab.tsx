@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
+import { format } from 'date-fns';
 import { Debt, DebtFrequency } from '../../../types';
 import { Plus, Edit2, Trash2, CreditCard, CheckCircle2 } from 'lucide-react';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { useBudgetStore } from '../../../stores/budgetStore';
+import ConfirmModal from '../../../components/ConfirmModal';
+import {
+  getCutoffKey,
+  getDebtCutoffs,
+  isCutoffPaidThisMonth,
+  type CutoffId,
+} from '../../../utils/debtCutoff';
 
 const FREQUENCY_LABELS: Record<DebtFrequency, string> = {
   one_time: 'One-time',
@@ -134,15 +142,53 @@ function ScheduleProgress({ debt }: { debt: Debt }) {
   );
 }
 
+type DebtFilter = 'unpaid' | 'paid' | 'all';
+
+function isDebtPaid(debt: Debt): boolean {
+  const freq = debt.frequency ?? 'monthly';
+  if (freq === 'one_time') return debt.isPaid === true;
+  const total = debt.totalSchedules ?? 0;
+  const paid = debt.paidSchedules ?? 0;
+  return total > 0 && paid >= total;
+}
+
 export default function DebtsTab() {
   const { formatCurrency } = useCurrency();
-  const { debts, loading, loadDebts, addDebt, updateDebt, deleteDebt } = useBudgetStore();
+  const {
+    debts,
+    categories,
+    loading,
+    loadDebts,
+    loadCategories,
+    loadExpenses,
+    addDebt,
+    addExpense,
+    updateDebt,
+    deleteDebt,
+    addCategory,
+  } = useBudgetStore();
   const [showForm, setShowForm] = useState(false);
   const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
   const [formData, setFormData] = useState(defaultForm());
   const [markingPayment, setMarkingPayment] = useState<string | null>(null);
+  const [debtFilter, setDebtFilter] = useState<DebtFilter>('unpaid');
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [confirmMarkAsPaid, setConfirmMarkAsPaid] = useState<Debt | null>(null);
+  const [confirmMarkPayment, setConfirmMarkPayment] = useState<Debt | null>(null);
+  const [biMonthlyCutoffDebt, setBiMonthlyCutoffDebt] = useState<Debt | null>(null);
 
-  useEffect(() => { loadDebts(); }, [loadDebts]);
+  useEffect(() => {
+    loadDebts();
+    loadCategories();
+  }, [loadDebts, loadCategories]);
+
+  const filteredDebts = useMemo(() => {
+    if (debtFilter === 'all') return debts;
+    return debts.filter(d => {
+      const paid = isDebtPaid(d);
+      return debtFilter === 'unpaid' ? !paid : paid;
+    });
+  }, [debts, debtFilter]);
 
   const freq = formData.frequency as DebtFrequency;
   const isOneTime = freq === 'one_time';
@@ -229,30 +275,106 @@ export default function DebtsTab() {
     setShowForm(true);
   };
 
+  const getDebtPaymentCategoryId = async (): Promise<string> => {
+    let cat = categories.find(c => c.name === 'Debt Payment');
+    if (cat) return cat.id;
+    await addCategory({ name: 'Debt Payment', isCustom: false });
+    await loadCategories(true);
+    cat = useBudgetStore.getState().categories.find(c => c.name === 'Debt Payment');
+    if (!cat) throw new Error('Could not create Debt Payment category');
+    return cat.id;
+  };
+
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this debt?')) return;
     try {
       await deleteDebt(id);
+      setConfirmDelete(null);
     } catch (error) {
       alert(`Failed to delete debt: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
-  const handleMarkPayment = async (debt: Debt) => {
+  const recordDebtPaymentExpense = async (debt: Debt, amount: number, cutoffLabel?: string) => {
+    const categoryId = await getDebtPaymentCategoryId();
+    const desc = cutoffLabel
+      ? `Debt: ${debt.creditor} (${cutoffLabel})`
+      : `Debt: ${debt.creditor}`;
+    await addExpense({
+      amount,
+      categoryId,
+      description: desc,
+      date: new Date(),
+      isRecurring: false,
+    });
+    await loadExpenses(undefined, undefined, true);
+  };
+
+  const handleMarkPayment = async (debt: Debt, cutoff?: CutoffId) => {
     const total = debt.totalSchedules ?? 0;
     const paid = debt.paidSchedules ?? 0;
     if (total > 0 && paid >= total) return;
+    const termPayment = getTermPaymentAmount(debt);
+    const debtFreq = (debt.frequency ?? 'monthly') as DebtFrequency;
+    const cutoffs = getDebtCutoffs(debt);
+    const resolvedCutoff: CutoffId =
+      cutoff ?? (cutoffs.length === 1 ? cutoffs[0] : '1');
     setMarkingPayment(debt.id);
+    setBiMonthlyCutoffDebt(null);
     try {
+      await recordDebtPaymentExpense(
+        debt,
+        termPayment,
+        debtFreq === 'bi_monthly' ? `Cutoff ${resolvedCutoff} (${resolvedCutoff === '1' ? '1-15' : '16-30'})` : undefined
+      );
+      const now = new Date();
+      const key = getCutoffKey(now.getFullYear(), now.getMonth(), resolvedCutoff);
+      const newKeys = [...(debt.paidCutoffKeys ?? []), key];
       const newPaid = paid + 1;
+      const newRemaining = Math.max(0, debt.remainingAmount - termPayment);
       await updateDebt(debt.id, {
         paidSchedules: newPaid,
+        remainingAmount: newRemaining,
         isPaid: total > 0 && newPaid >= total ? true : debt.isPaid,
+        paidCutoffKeys: newKeys,
       });
     } catch (error) {
       alert(`Failed to mark payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setMarkingPayment(null);
+    }
+  };
+
+  const handleMarkAsPaid = async (debt: Debt) => {
+    setMarkingPayment(debt.id);
+    setConfirmMarkAsPaid(null);
+    try {
+      await recordDebtPaymentExpense(debt, debt.minimumPayment);
+      await updateDebt(debt.id, {
+        isPaid: true,
+        remainingAmount: 0,
+      });
+    } catch (error) {
+      alert(`Failed to mark as paid: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setMarkingPayment(null);
+    }
+  };
+
+  /** Amount to deduct per scheduled payment. Uses totalAmount/totalSchedules for equal instalments when available. */
+  const getTermPaymentAmount = (debt: Debt): number => {
+    const total = debt.totalSchedules ?? 0;
+    if (total > 0 && debt.totalAmount > 0) {
+      return Math.round((debt.totalAmount / total) * 100) / 100;
+    }
+    return debt.minimumPayment;
+  };
+
+  const openMarkPayment = (debt: Debt) => {
+    const cutoffs = getDebtCutoffs(debt);
+    if (cutoffs.length > 1) {
+      setBiMonthlyCutoffDebt(debt);
+    } else {
+      setConfirmMarkPayment(debt);
     }
   };
 
@@ -501,18 +623,40 @@ export default function DebtsTab() {
         </div>
       )}
 
+      {/* Filter Toggle */}
+      {debts.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Show:</span>
+          {(['unpaid', 'paid', 'all'] as const).map(f => (
+            <button
+              key={f}
+              onClick={() => setDebtFilter(f)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                debtFilter === f
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+              }`}
+            >
+              {f === 'unpaid' ? 'Unpaid' : f === 'paid' ? 'Paid' : 'All'}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* List */}
       <div className="w-full bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {debts.length === 0 ? (
+        {filteredDebts.length === 0 ? (
           <div className="p-8 md:p-12 text-center">
             <CreditCard className="w-12 h-12 md:w-16 md:h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">No debts recorded. Add your first debt!</p>
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
+              {debts.length === 0 ? 'No debts recorded. Add your first debt!' : `No ${debtFilter} debts. Try another filter.`}
+            </p>
           </div>
         ) : (
           <>
             {/* Mobile Card View */}
             <div className="md:hidden space-y-3 p-3">
-              {debts.map(debt => {
+              {filteredDebts.map(debt => {
                 const debtFreq = (debt.frequency ?? 'monthly') as DebtFrequency;
                 const total = debt.totalSchedules ?? 0;
                 const paid = debt.paidSchedules ?? 0;
@@ -569,27 +713,36 @@ export default function DebtsTab() {
                     <div className="flex items-center justify-between pt-1">
                       {canMarkPayment ? (
                         <button
-                          onClick={() => handleMarkPayment(debt)}
+                          onClick={() => openMarkPayment(debt)}
                           disabled={markingPayment === debt.id}
                           className="flex items-center gap-1 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-xs font-medium hover:bg-green-200 dark:hover:bg-green-900/50 disabled:opacity-50 transition-colors"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           {markingPayment === debt.id ? 'Saving...' : 'Mark Payment'}
                         </button>
+                      ) : debtFreq === 'one_time' && !debt.isPaid ? (
+                        <button
+                          onClick={() => setConfirmMarkAsPaid(debt)}
+                          disabled={markingPayment === debt.id}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-xs font-medium hover:bg-green-200 dark:hover:bg-green-900/50 disabled:opacity-50 transition-colors"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          {markingPayment === debt.id ? 'Saving...' : 'Mark as Paid'}
+                        </button>
                       ) : (
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          debt.isPaid
+                          debt.isPaid || isDebtPaid(debt)
                             ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                             : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
                         }`}>
-                          {debt.isPaid ? 'Fully Paid' : 'Active'}
+                          {debt.isPaid || isDebtPaid(debt) ? 'Fully Paid' : 'Active'}
                         </span>
                       )}
                       <div className="flex gap-2">
                         <button onClick={() => handleEdit(debt)} className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDelete(debt.id)} className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                        <button onClick={() => setConfirmDelete(debt.id)} className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -614,7 +767,7 @@ export default function DebtsTab() {
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {debts.map(debt => {
+                  {filteredDebts.map(debt => {
                     const debtFreq = (debt.frequency ?? 'monthly') as DebtFrequency;
                     const total = debt.totalSchedules ?? 0;
                     const paid = debt.paidSchedules ?? 0;
@@ -649,9 +802,19 @@ export default function DebtsTab() {
                           <div className="flex items-center gap-1">
                             {canMarkPayment && (
                               <button
-                                onClick={() => handleMarkPayment(debt)}
+                                onClick={() => openMarkPayment(debt)}
                                 disabled={markingPayment === debt.id}
                                 title="Mark one payment as paid"
+                                className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                              </button>
+                            )}
+                            {debtFreq === 'one_time' && !debt.isPaid && (
+                              <button
+                                onClick={() => setConfirmMarkAsPaid(debt)}
+                                disabled={markingPayment === debt.id}
+                                title="Mark as fully paid"
                                 className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors disabled:opacity-50"
                               >
                                 <CheckCircle2 className="w-4 h-4" />
@@ -660,7 +823,7 @@ export default function DebtsTab() {
                             <button onClick={() => handleEdit(debt)} className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
                               <Edit2 className="w-4 h-4" />
                             </button>
-                            <button onClick={() => handleDelete(debt.id)} className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                            <button onClick={() => setConfirmDelete(debt.id)} className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
@@ -674,6 +837,94 @@ export default function DebtsTab() {
           </>
         )}
       </div>
+
+      {/* Delete confirmation */}
+      <ConfirmModal
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => confirmDelete && handleDelete(confirmDelete)}
+        title="Delete debt"
+        message="Are you sure you want to delete this debt? This cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+      />
+
+      {/* Mark payment (recurring) confirmation */}
+      <ConfirmModal
+        isOpen={!!confirmMarkPayment}
+        onClose={() => setConfirmMarkPayment(null)}
+        onConfirm={() => confirmMarkPayment && handleMarkPayment(confirmMarkPayment)}
+        title="Mark payment"
+        message={
+          confirmMarkPayment
+            ? `Record payment of ${formatCurrency(getTermPaymentAmount(confirmMarkPayment))} for ${confirmMarkPayment.creditor}? This will be added to your expenses and reduce your balance.`
+            : ''
+        }
+        confirmLabel="Mark paid"
+        cancelLabel="Cancel"
+        variant="success"
+      />
+
+      {/* Mark as paid (one-time) confirmation */}
+      <ConfirmModal
+        isOpen={!!confirmMarkAsPaid}
+        onClose={() => setConfirmMarkAsPaid(null)}
+        onConfirm={() => confirmMarkAsPaid && handleMarkAsPaid(confirmMarkAsPaid)}
+        title="Mark as paid"
+        message={
+          confirmMarkAsPaid
+            ? `Record full payment of ${formatCurrency(confirmMarkAsPaid.minimumPayment)} for ${confirmMarkAsPaid.creditor}? This will be added to your expenses and reduce your balance.`
+            : ''
+        }
+        confirmLabel="Mark paid"
+        cancelLabel="Cancel"
+        variant="success"
+      />
+
+      {/* Bi-monthly: which cutoff are you paying? */}
+      {biMonthlyCutoffDebt && (() => {
+        const now = new Date();
+        const paid1 = isCutoffPaidThisMonth(biMonthlyCutoffDebt, now.getFullYear(), now.getMonth(), '1');
+        const paid2 = isCutoffPaidThisMonth(biMonthlyCutoffDebt, now.getFullYear(), now.getMonth(), '2');
+        return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setBiMonthlyCutoffDebt(null)} aria-hidden />
+          <div className="relative w-full max-w-sm rounded-xl bg-white dark:bg-gray-800 p-4 shadow-xl border border-gray-200 dark:border-gray-700">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">Which due date did you pay?</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              {biMonthlyCutoffDebt.creditor} — {formatCurrency(biMonthlyCutoffDebt.minimumPayment)} per payment
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleMarkPayment(biMonthlyCutoffDebt, '1')}
+                disabled={markingPayment === biMonthlyCutoffDebt.id || paid1}
+                className={`flex-1 px-3 py-2 rounded-lg font-medium text-sm disabled:opacity-50 ${
+                  paid1 ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 line-through' : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/50'
+                }`}
+              >
+                {ordinal(biMonthlyCutoffDebt.dueDate ?? 1)} (1–15) {paid1 ? '✓' : ''}
+              </button>
+              <button
+                onClick={() => handleMarkPayment(biMonthlyCutoffDebt, '2')}
+                disabled={markingPayment === biMonthlyCutoffDebt.id || paid2}
+                className={`flex-1 px-3 py-2 rounded-lg font-medium text-sm disabled:opacity-50 ${
+                  paid2 ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 line-through' : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/50'
+                }`}
+              >
+                {ordinal(biMonthlyCutoffDebt.secondDueDate ?? 15)} (16–30) {paid2 ? '✓' : ''}
+              </button>
+            </div>
+            <button
+              onClick={() => setBiMonthlyCutoffDebt(null)}
+              className="mt-3 w-full py-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+        );
+      })()}
     </div>
   );
 }

@@ -9,7 +9,7 @@ export interface BaseEntity {
 export interface Income extends BaseEntity {
   amount: number;
   source: string;
-  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
+  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'one_time';
   date: Date;
   notes?: string;
 }
@@ -30,6 +30,7 @@ export interface Expense extends BaseEntity {
   isRecurring: boolean;
   recurringFrequency?: 'daily' | 'weekly' | 'monthly' | 'yearly';
   nextDueDate?: Date;
+  lastPaidMonth?: string; // YYYY-MM when subscription was last marked paid for the month
   notes?: string;
 }
 
@@ -53,6 +54,8 @@ export interface Debt extends BaseEntity {
   paidSchedules?: number; // how many have been paid (0-based)
   oneTimeDueDate?: string; // ISO date string (YYYY-MM-DD) for one_time frequency
   secondDueDate?: number; // second due day (1-31) used for bi_monthly
+  /** Keys like "YYYY-MM-1" or "YYYY-MM-2" for cutoffs paid (1 = days 1-15, 2 = days 16-30) */
+  paidCutoffKeys?: string[];
 }
 
 export interface SavingsGoal extends BaseEntity {

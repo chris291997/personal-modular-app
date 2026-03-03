@@ -6,6 +6,7 @@ import { useCurrency } from '../../../hooks/useCurrency';
 import { useBudgetStore } from '../../../stores/budgetStore';
 
 const COMMON_CATEGORIES = [
+  'Debt Payment',
   'Food',
   'Device',
   'Service',

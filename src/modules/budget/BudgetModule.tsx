@@ -5,9 +5,10 @@ import DebtsTab from './tabs/DebtsTab';
 import SavingsTab from './tabs/SavingsTab';
 import ConsultTab from './tabs/ConsultTab';
 import DashboardTab from './tabs/DashboardTab';
-import { BarChart3, Wallet, CreditCard, Target, TrendingUp, HelpCircle } from 'lucide-react';
+import SubscriptionsTab from './tabs/SubscriptionsTab';
+import { BarChart3, Wallet, CreditCard, Target, TrendingUp, HelpCircle, Repeat } from 'lucide-react';
 
-type Tab = 'dashboard' | 'income' | 'expenses' | 'debts' | 'savings' | 'consult';
+type Tab = 'dashboard' | 'income' | 'expenses' | 'subscriptions' | 'debts' | 'savings' | 'consult';
 
 export default function BudgetModule() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -15,7 +16,7 @@ export default function BudgetModule() {
   // Check for tab navigation from Home page
   useEffect(() => {
     const tabFromStorage = sessionStorage.getItem('budgetTab');
-    if (tabFromStorage && ['dashboard', 'income', 'expenses', 'debts', 'savings', 'consult'].includes(tabFromStorage)) {
+    if (tabFromStorage && ['dashboard', 'income', 'expenses', 'subscriptions', 'debts', 'savings', 'consult'].includes(tabFromStorage)) {
       setActiveTab(tabFromStorage as Tab);
       sessionStorage.removeItem('budgetTab');
     }
@@ -25,6 +26,7 @@ export default function BudgetModule() {
     { id: 'dashboard', label: 'Dashboard', icon: <BarChart3 className="w-full h-full" /> },
     { id: 'income', label: 'Income', icon: <TrendingUp className="w-full h-full" /> },
     { id: 'expenses', label: 'Expenses', icon: <Wallet className="w-full h-full" /> },
+    { id: 'subscriptions', label: 'Subscriptions', icon: <Repeat className="w-full h-full" /> },
     { id: 'debts', label: 'Debts', icon: <CreditCard className="w-full h-full" /> },
     { id: 'savings', label: 'Savings', icon: <Target className="w-full h-full" /> },
     { id: 'consult', label: 'Consult', icon: <HelpCircle className="w-full h-full" /> },
@@ -68,6 +70,7 @@ export default function BudgetModule() {
         {activeTab === 'dashboard' && <DashboardTab key="dashboard" />}
         {activeTab === 'income' && <IncomeTab key="income" />}
         {activeTab === 'expenses' && <ExpensesTab key="expenses" />}
+        {activeTab === 'subscriptions' && <SubscriptionsTab key="subscriptions" />}
         {activeTab === 'debts' && <DebtsTab key="debts" />}
         {activeTab === 'savings' && <SavingsTab key="savings" />}
         {activeTab === 'consult' && <ConsultTab key="consult" />}
