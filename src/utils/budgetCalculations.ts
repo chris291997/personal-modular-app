@@ -1,4 +1,4 @@
-import { Income, Expense, Debt } from '../types';
+import { Income, Expense, Debt, SavingsGoal } from '../types';
 import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import {
   getDebtAmountPerCutoff,
@@ -92,7 +92,7 @@ export function calculateMonthlyExpenses(
 export function calculateMonthlyDebtPayments(debts: Debt[]): number {
   return debts
     .filter(d => (d.remainingAmount ?? 0) > 0)
-    .reduce((sum, debt) => sum + debt.minimumPayment, 0);
+    .reduce((sum, debt) => sum + (debt.minimumPayment ?? 0), 0);
 }
 
 /**
@@ -117,18 +117,28 @@ export function calculateCurrentCutoffDebtPayments(debts: Debt[]): number {
 }
 
 /**
- * Available budget = balance - current cutoff debt payments (unpaid).
+ * Total amount allocated to savings goals (reduces available budget).
+ */
+export function calculateTotalSavingsAllocated(savingsGoals: SavingsGoal[]): number {
+  return savingsGoals.reduce((sum, g) => sum + (g.currentAmount ?? 0), 0);
+}
+
+/**
+ * Available budget = balance - current cutoff debt payments (unpaid) - savings allocated.
  * Debt payments made are recorded as expenses (reduces balance).
+ * Savings goals represent money set aside and reduce what's available to spend.
  */
 export function calculateAvailableBudget(
   incomes: Income[],
   expenses: Expense[],
   debts: Debt[],
-  referenceMonth = new Date()
+  referenceMonth = new Date(),
+  savingsGoals: SavingsGoal[] = []
 ): number {
   const income = calculateMonthlyIncome(incomes, referenceMonth);
   const expenseTotal = calculateMonthlyExpenses(expenses, referenceMonth);
   const balance = income - expenseTotal;
   const currentCutoffDue = calculateCurrentCutoffDebtPayments(debts);
-  return balance - currentCutoffDue;
+  const totalSavings = calculateTotalSavingsAllocated(savingsGoals);
+  return balance - currentCutoffDue - totalSavings;
 }

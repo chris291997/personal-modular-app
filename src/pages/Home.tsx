@@ -16,7 +16,7 @@ export default function Home() {
   const { formatCurrency } = useCurrency();
   
   // Use stores
-  const { incomes, expenses, debts, loadIncomes, loadExpenses, loadDebts } = useBudgetStore();
+  const { incomes, expenses, debts, savingsGoals, loadIncomes, loadExpenses, loadDebts, loadSavingsGoals } = useBudgetStore();
   const { tickets, loadTickets } = useTaskStore();
 
   useEffect(() => {
@@ -36,13 +36,14 @@ export default function Home() {
     loadIncomes(undefined, undefined, true);
     loadExpenses(undefined, undefined, true);
     loadDebts(true);
+    loadSavingsGoals(true);
     loadTickets();
-  }, [loadIncomes, loadExpenses, loadDebts, loadTickets]);
+  }, [loadIncomes, loadExpenses, loadDebts, loadSavingsGoals, loadTickets]);
 
   // Total Balance = Available Budget (same formula as Budget Dashboard)
-  const totalBalance = calculateAvailableBudget(incomes, expenses, debts);
+  const totalBalance = calculateAvailableBudget(incomes, expenses, debts, new Date(), savingsGoals);
   const activeTasks = tickets.length;
-  const savingsGoals = 0; // Will be calculated from store when needed
+  const totalSavings = savingsGoals.reduce((sum, g) => sum + g.currentAmount, 0);
 
   return (
     <div className="w-full pb-20 md:pb-8 space-y-4 md:space-y-6">
@@ -158,8 +159,8 @@ export default function Home() {
             <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform">
               <CheckSquare className="w-4 h-4 md:w-5 md:h-5 text-white" />
             </div>
-            <p className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mb-0.5 md:mb-1 leading-tight">{savingsGoals}</p>
-            <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400">Goals</p>
+            <p className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mb-0.5 md:mb-1 leading-tight">{formatCurrency(totalSavings)}</p>
+            <p className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400">Savings</p>
           </div>
         </div>
       </div>

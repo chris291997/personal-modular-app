@@ -30,11 +30,16 @@ export default function ConsultForm({ compact = false }: ConsultFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const amountNum = parseFloat(formData.amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      alert('Please enter a valid amount.');
+      return;
+    }
     try {
       setLoading(true);
       const input: ConsultInput = {
         type,
-        amount: parseFloat(formData.amount),
+        amount: amountNum,
         ...(type === 'expense' ? {
           isRecurring: formData.isRecurring,
           recurringFrequency: formData.isRecurring ? formData.recurringFrequency : undefined,

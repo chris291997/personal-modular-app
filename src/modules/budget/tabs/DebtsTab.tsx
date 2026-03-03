@@ -214,14 +214,16 @@ export default function DebtsTab() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const remaining = parseFloat(formData.remainingAmount);
+      const totalSchedulesVal = isOneTime ? 1 : (formData.totalSchedules ? parseInt(formData.totalSchedules) : 0);
       const base = {
         type: formData.type,
         creditor: formData.creditor,
         totalAmount: parseFloat(formData.totalAmount),
-        remainingAmount: parseFloat(formData.remainingAmount),
+        remainingAmount: formData.isPaid ? 0 : remaining,
         minimumPayment: parseFloat(formData.minimumPayment),
         frequency: freq,
-        paidSchedules: parseInt(formData.paidSchedules) || 0,
+        paidSchedules: formData.isPaid ? totalSchedulesVal : (parseInt(formData.paidSchedules) || 0),
         interestRate: formData.interestRate ? parseFloat(formData.interestRate) : undefined,
         downPayment: formData.downPayment ? parseFloat(formData.downPayment) : undefined,
         isPaid: formData.isPaid,
@@ -232,6 +234,12 @@ export default function DebtsTab() {
         secondDueDate: isBiMonthly ? parseInt(formData.secondDueDate) : undefined,
         oneTimeDueDate: isOneTime ? formData.oneTimeDueDate : undefined,
       };
+
+      if (formData.isPaid && remaining > 0) {
+        const debtForExpense: Pick<Debt, 'creditor'> = { creditor: formData.creditor };
+        const amountPaid = editingDebt ? editingDebt.remainingAmount : remaining;
+        await recordDebtPaymentExpense(debtForExpense as Debt, amountPaid);
+      }
 
       if (editingDebt) {
         await updateDebt(editingDebt.id, base);

@@ -12,6 +12,12 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../firebase/config';
 import { Income, Expense, Debt, SavingsGoal, ExpenseCategory, ConsultInput, ConsultResult } from '../types';
+import {
+  calculateMonthlyIncome,
+  calculateMonthlyExpenses,
+  calculateMonthlyDebtPayments,
+  calculateAvailableBudget,
+} from '../utils/budgetCalculations';
 
 // Helper function to get current user ID from Firebase Auth
 // Note: App.tsx ensures user is authenticated before rendering components
@@ -540,95 +546,82 @@ export const deleteSavingsGoal = async (id: string): Promise<void> => {
 
 // Consult Feature
 export const calculateConsult = async (input: ConsultInput): Promise<ConsultResult> => {
-  // Get current financial state
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  
-  const [incomes, expenses, debts] = await Promise.all([
-    getIncomes(startOfMonth, endOfMonth),
-    getExpenses(startOfMonth, endOfMonth),
+  // Fetch ALL incomes/expenses (no date filter) so recurring items are included in monthly calc
+  const [incomes, expenses, debts, savingsGoals] = await Promise.all([
+    getIncomes(undefined, undefined),
+    getExpenses(undefined, undefined),
     getDebts(),
+    getSavingsGoals(),
   ]);
-  
-  // Calculate monthly income
-  const monthlyIncome = incomes.reduce((sum, income) => {
-    const multiplier = getFrequencyMultiplier(income.frequency);
-    return sum + (income.amount * multiplier);
-  }, 0);
-  
-  // Calculate monthly expenses
-  const monthlyExpenses = expenses.reduce((sum, expense) => {
-    if (expense.isRecurring) {
-      const multiplier = expense.recurringFrequency ? getFrequencyMultiplier(expense.recurringFrequency) : 1;
-      return sum + (expense.amount * multiplier);
-    }
-    return sum;
-  }, 0);
-  
-  // Calculate monthly debt payments
-  const monthlyDebtPayments = debts.reduce((sum, debt) => sum + debt.minimumPayment, 0);
-  
-  const currentAvailableBudget = monthlyIncome - monthlyExpenses - monthlyDebtPayments;
-  
+
+  const monthlyIncome = calculateMonthlyIncome(incomes);
+  const monthlyExpenses = calculateMonthlyExpenses(expenses);
+  const monthlyDebtPayments = calculateMonthlyDebtPayments(debts);
+  const currentAvailableBudget = calculateAvailableBudget(incomes, expenses, debts, new Date(), savingsGoals);
+
   // Calculate impact of new input
   let monthlyPaymentImpact = 0;
   let totalCostOverTime = 0;
   const warnings: string[] = [];
-  
+
+  const amount = (input.amount != null && !isNaN(input.amount)) ? input.amount : 0;
+  const months = (input.months != null && !isNaN(input.months)) ? input.months : 0;
+
   if (input.type === 'expense') {
     if (input.isRecurring && input.recurringFrequency) {
       const multiplier = getFrequencyMultiplier(input.recurringFrequency);
-      monthlyPaymentImpact = input.amount * multiplier;
+      monthlyPaymentImpact = amount * multiplier;
     } else {
-      monthlyPaymentImpact = input.amount;
+      monthlyPaymentImpact = amount;
     }
     totalCostOverTime = monthlyPaymentImpact;
   } else if (input.type === 'debt') {
-    if (input.minimumPayment) {
+    if (input.minimumPayment != null && input.minimumPayment > 0) {
       monthlyPaymentImpact = input.minimumPayment;
+    } else if (amount > 0 && months > 0) {
+      monthlyPaymentImpact = amount / months;
     }
-    if (input.amount && input.months) {
-      const principal = input.downPayment ? input.amount - input.downPayment : input.amount;
+    if (amount > 0 && months > 0) {
+      const principal = input.downPayment ? amount - input.downPayment : amount;
       totalCostOverTime = principal;
-      if (input.interestRate) {
-        // Simple interest calculation
+      if (input.interestRate && input.interestRate > 0) {
         const monthlyRate = input.interestRate / 100 / 12;
-        totalCostOverTime = principal * (1 + monthlyRate * input.months);
+        totalCostOverTime = principal * (1 + monthlyRate * months);
       }
       if (input.downPayment) {
         totalCostOverTime += input.downPayment;
       }
+    } else if (amount > 0) {
+      totalCostOverTime = amount;
     }
   } else if (input.type === 'subscription') {
     if (input.billingFrequency === 'monthly') {
-      monthlyPaymentImpact = input.amount;
-      totalCostOverTime = input.amount * 12; // Annual cost
+      monthlyPaymentImpact = amount;
+      totalCostOverTime = amount * 12;
     } else if (input.billingFrequency === 'yearly') {
-      monthlyPaymentImpact = input.amount / 12;
-      totalCostOverTime = input.amount;
+      monthlyPaymentImpact = amount / 12;
+      totalCostOverTime = amount;
     } else {
-      // Default to monthly
-      monthlyPaymentImpact = input.amount;
-      totalCostOverTime = input.amount * 12;
+      monthlyPaymentImpact = amount;
+      totalCostOverTime = amount * 12;
     }
   }
-  
+
   const effectOnAvailableBudget = currentAvailableBudget - monthlyPaymentImpact;
   const canAfford = effectOnAvailableBudget >= 0;
-  
+
   if (!canAfford) {
     warnings.push('This will exceed your available budget');
   }
-  
-  if (monthlyPaymentImpact > monthlyIncome * 0.3) {
+
+  if (monthlyIncome > 0 && monthlyPaymentImpact > monthlyIncome * 0.3) {
     warnings.push('This payment represents more than 30% of your monthly income');
   }
-  
+
   if (input.type === 'debt' && input.interestRate && input.interestRate > 20) {
     warnings.push('High interest rate detected. Consider alternatives if possible.');
   }
-  
+
   return {
     monthlyPaymentImpact,
     totalCostOverTime,

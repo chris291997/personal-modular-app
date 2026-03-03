@@ -4,10 +4,24 @@ import { format } from 'date-fns';
 import { Plus, Edit2, Trash2, Target, DollarSign } from 'lucide-react';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { useBudgetStore } from '../../../stores/budgetStore';
+import { calculateAvailableBudget } from '../../../utils/budgetCalculations';
 
 export default function SavingsTab() {
   const { formatCurrency } = useCurrency();
-  const { savingsGoals: goals, loading, loadSavingsGoals, addSavingsGoal, updateSavingsGoal, deleteSavingsGoal } = useBudgetStore();
+  const {
+    incomes,
+    expenses,
+    debts,
+    savingsGoals: goals,
+    loading,
+    loadIncomes,
+    loadExpenses,
+    loadDebts,
+    loadSavingsGoals,
+    addSavingsGoal,
+    updateSavingsGoal,
+    deleteSavingsGoal,
+  } = useBudgetStore();
   const [showForm, setShowForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
   const [contributingGoalId, setContributingGoalId] = useState<string | null>(null);
@@ -22,17 +36,32 @@ export default function SavingsTab() {
   });
 
   useEffect(() => {
-    loadSavingsGoals(); // Load from store (will use cache if available)
-  }, [loadSavingsGoals]);
+    loadIncomes(undefined, undefined, true);
+    loadExpenses(undefined, undefined, true);
+    loadDebts(true);
+    loadSavingsGoals(true);
+  }, [loadIncomes, loadExpenses, loadDebts, loadSavingsGoals]);
+
+  const availableBudget = calculateAvailableBudget(incomes, expenses, debts, new Date(), goals);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const newCurrent = parseFloat(formData.currentAmount);
+    if (isNaN(newCurrent) || newCurrent < 0) {
+      alert('Please enter a valid current amount.');
+      return;
+    }
+    const amountToAdd = editingGoal ? Math.max(0, newCurrent - editingGoal.currentAmount) : newCurrent;
+    if (amountToAdd > availableBudget) {
+      alert(`Insufficient available balance. You have ${formatCurrency(availableBudget)} available.`);
+      return;
+    }
     try {
       if (editingGoal) {
         await updateSavingsGoal(editingGoal.id, {
           ...formData,
           targetAmount: parseFloat(formData.targetAmount),
-          currentAmount: parseFloat(formData.currentAmount),
+          currentAmount: newCurrent,
           targetDate: formData.targetDate ? new Date(formData.targetDate) : undefined,
           notes: formData.notes || undefined,
         });
@@ -40,7 +69,7 @@ export default function SavingsTab() {
         await addSavingsGoal({
           name: formData.name,
           targetAmount: parseFloat(formData.targetAmount),
-          currentAmount: parseFloat(formData.currentAmount),
+          currentAmount: newCurrent,
           targetDate: formData.targetDate ? new Date(formData.targetDate) : undefined,
           notes: formData.notes || undefined,
         });
@@ -103,15 +132,20 @@ export default function SavingsTab() {
   };
 
   const handleAddContribution = async (goalId: string) => {
-    if (!contributionAmount || parseFloat(contributionAmount) <= 0) {
+    const amount = parseFloat(contributionAmount);
+    if (!contributionAmount || isNaN(amount) || amount <= 0) {
       alert('Please enter a valid contribution amount');
+      return;
+    }
+    if (amount > availableBudget) {
+      alert(`Insufficient available balance. You have ${formatCurrency(availableBudget)} available.`);
       return;
     }
     try {
       const goal = goals.find(g => g.id === goalId);
       if (!goal) return;
       
-      const newAmount = goal.currentAmount + parseFloat(contributionAmount);
+      const newAmount = goal.currentAmount + amount;
       await updateSavingsGoal(goalId, {
         currentAmount: newAmount,
       });
@@ -124,7 +158,7 @@ export default function SavingsTab() {
     }
   };
 
-  if (loading.savingsGoals) {
+  if (loading.savingsGoals || loading.incomes || loading.expenses || loading.debts) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
@@ -141,7 +175,9 @@ export default function SavingsTab() {
           </div>
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Savings Goals</h2>
-            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Set and track your savings goals</p>
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+              Set and track your savings goals · Available: {formatCurrency(availableBudget)}
+            </p>
           </div>
         </div>
         <button

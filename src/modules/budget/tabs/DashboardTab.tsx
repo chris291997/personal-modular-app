@@ -14,6 +14,7 @@ import {
   calculateMonthlyExpenses,
   calculateCurrentCutoffDebtPayments,
   calculateOnHandBalance,
+  calculateAvailableBudget,
   getFrequencyMultiplier,
 } from '../../../utils/budgetCalculations';
 import { getDebtPaymentsByCutoff } from '../../../utils/debtCutoff';
@@ -67,9 +68,9 @@ export default function DashboardTab() {
   const { cutoff1, cutoff2 } = getDebtPaymentsByCutoff(debts, now.getFullYear(), now.getMonth());
   const onHandBalance = calculateOnHandBalance(incomes, expenses, now);
   const currentCutoffDue = calculateCurrentCutoffDebtPayments(debts);
-  const availableBudget = onHandBalance - currentCutoffDue;
-  const totalDebt = debts.reduce((sum, debt) => sum + debt.remainingAmount, 0);
   const totalSavings = savingsGoals.reduce((sum, goal) => sum + goal.currentAmount, 0);
+  const availableBudget = calculateAvailableBudget(incomes, expenses, debts, now, savingsGoals);
+  const totalDebt = debts.reduce((sum, debt) => sum + debt.remainingAmount, 0);
 
   // Chart data — monthly contribution per category (recurring + one-time this month)
   const expenseByCategory = expenses.reduce((acc, expense) => {
