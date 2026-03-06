@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Dice6, History, Bell, BarChart3, ListChecks } from 'lucide-react';
 import { useLottoStore } from '../../stores/lottoStore';
+import { getMatchingBets, findRelaxedMatch, isSameDrawDate } from './utils/prizes';
 import ResultsTab from './components/ResultsTab';
 import GeneratorTab from './components/GeneratorTab';
 import BetsTab from './components/BetsTab';
@@ -11,13 +12,59 @@ type TabId = 'results' | 'history' | 'generator' | 'bets' | 'reminders';
 
 export default function LottoModule() {
   const [activeTab, setActiveTab] = useState<TabId>('results');
-  const { loadDraws, loadBets, loadReminders } = useLottoStore();
+  const { draws, bets, loadDraws, loadBets, loadReminders, updateBet } = useLottoStore();
 
   useEffect(() => {
-    loadDraws();
-    loadBets();
+    loadDraws(undefined, true); // Force load (bypass cache) so matching has fresh data
+    loadBets(true);
     loadReminders();
   }, [loadDraws, loadBets, loadReminders]);
+
+  // Match bets to draws (runs on any tab so pending bets get resolved as soon as data loads)
+  useEffect(() => {
+    const pendingBets = bets.filter(b => b.resultStatus === 'pending');
+    const settledBets = bets.filter(b => b.resultStatus === 'won' || b.resultStatus === 'lost');
+    const updatedIds = new Set<string>();
+
+    for (const draw of draws) {
+      const results = getMatchingBets(draw, bets);
+      for (const r of results) {
+        if (r.bet.resultStatus === 'pending') {
+          updateBet(r.bet.id, {
+            resultStatus: r.isWin ? 'won' : 'lost',
+            matchedCount: r.matchedCount,
+            winnings: r.isWin ? r.prizeAmount : undefined,
+          });
+          updatedIds.add(r.bet.id);
+        }
+      }
+    }
+
+    for (const bet of pendingBets) {
+      if (updatedIds.has(bet.id)) continue;
+      const relaxed = findRelaxedMatch(bet, draws);
+      if (relaxed) {
+        updateBet(bet.id, {
+          resultStatus: relaxed.isWin ? 'won' : 'lost',
+          matchedCount: relaxed.matchedCount,
+          winnings: relaxed.isWin ? relaxed.prizeAmount : undefined,
+        });
+      }
+    }
+
+    // Revert won/lost to pending only when draws loaded AND no match exists
+    if (draws.length > 0) {
+      for (const bet of settledBets) {
+        const hasExactMatch = draws.some(
+          d => d.game === bet.game && isSameDrawDate(d.drawDate, bet.drawDate)
+        );
+        const hasRelaxedMatch = findRelaxedMatch(bet, draws);
+        if (!hasExactMatch && !hasRelaxedMatch) {
+          updateBet(bet.id, { resultStatus: 'pending' });
+        }
+      }
+    }
+  }, [draws, bets, updateBet]);
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
     { id: 'results', label: 'Results', icon: <BarChart3 className="w-full h-full" /> },

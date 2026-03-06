@@ -188,6 +188,21 @@ The JSON must be converted to a single-line string for Vercel:
 3. Click **Save**
 4. **Redeploy** your project
 
+### Lotto PCSO Scraper (Optional)
+
+To use the "Run Scraper" button in the Lotto module, add these env vars:
+
+- **GITHUB_TOKEN** — Personal Access Token with `repo` + `workflow` scope
+- **GITHUB_OWNER** — Your GitHub username or org
+- **GITHUB_REPO** — Repository name (e.g. `personal-management-app`)
+
+Create the token at: GitHub → Settings → Developer settings → Personal access tokens.  
+The scraper triggers the `.github/workflows/pcso-scraper.yml` workflow.
+
+Firebase (`FIREBASE_SERVICE_ACCOUNT`) is also required for slot settings.
+
+If the trigger returns 500, check Vercel function logs and ensure all vars are set. The app now returns clear error messages for missing config.
+
 ### Step 4: Verify
 
 After redeploying, test the Admin API:

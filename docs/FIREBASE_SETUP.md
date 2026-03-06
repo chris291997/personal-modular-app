@@ -147,7 +147,7 @@ service cloud.firestore {
    - Use authenticated rules
    - Ensure user is logged in
 
-### Error: "PERMISSION_DENIED"
+### Error: "PERMISSION_DENIED" or "Missing or insufficient permissions"
 
 **Cause**: Security rules blocking the operation.
 
@@ -155,6 +155,23 @@ service cloud.firestore {
 - Check Firestore security rules
 - Verify user is authenticated (if using auth rules)
 - Check browser console for specific error details
+
+### Can log in but all data is gone (data still exists in Firestore)
+
+**Cause**: You can log in (so `users` collection rules work), but **other collections** (incomes, expenses, debts, etc.) are blocked by Firestore security rules. Common causes:
+- **Test mode expired** – 30-day test rules ended; reads are now denied
+- **Rules don't cover all collections** – incomes, expenses, debts, savingsGoals, categories, tickets, lotto_bets, lotto_reminders, lotto_results need explicit rules
+- **Rules require `userId`** – your documents must have a `userId` field matching your Firebase Auth UID
+
+**Fix**:
+
+1. **Open Firebase Console** → Firestore Database → **Rules** tab
+2. **Replace your rules** with the full rules from `firestore.rules` in this project (or from `docs/FIRESTORE_COLLECTIONS.md`)
+3. **Verify `userId` on documents** – In Firestore Console, open an `incomes` or `expenses` doc and confirm it has a `userId` field. The value must match your Firebase Auth UID (Profile → User UID in Firebase Console)
+4. **Publish** rules and wait 1–2 minutes
+5. **Hard refresh** (Ctrl+F5) and try again
+
+**Quick test (development only)**: Temporarily use `allow read, write: if request.auth != null;` for all documents to confirm it's a rules issue. If data appears, the problem is your rules. Switch back to proper rules afterward.
 
 ### Error: "UNAUTHENTICATED"
 
@@ -264,12 +281,32 @@ service firebase.storage {
 
 ---
 
+## Firestore Composite Indexes
+
+Queries with `where` + `orderBy` require composite indexes. The app defines these in `firestore.indexes.json`.
+
+**Required indexes:** incomes, expenses, debts, savingsGoals, tickets (each: userId + sort field).
+
+**Deploy indexes:**
+
+1. Install Firebase CLI: `npm install -g firebase-tools`
+2. Login: `firebase login`
+3. Link project (if not already): `firebase use personal-modular-app-3ca9e`
+4. From project root: `firebase deploy --only firestore:indexes`
+
+Or create them manually: when you see "Composite index missing" in the console, click the link in the error message to open Firebase Console and create the index.
+
+Indexes take a few minutes to build. Until then, the app falls back to fetching without `orderBy` and sorting in memory (slower but works).
+
+---
+
 ## Configuration Checklist
 
 - [ ] Firebase project created
 - [ ] Firestore Database enabled
 - [ ] Security rules configured
 - [ ] Firebase config added to `src/firebase/config.ts`
+- [ ] Firestore composite indexes deployed (`firebase deploy --only firestore:indexes`)
 - [ ] Cloud Messaging enabled (for notifications)
 - [ ] VAPID key generated and added to config
 - [ ] Firebase Storage enabled (for profile pictures)

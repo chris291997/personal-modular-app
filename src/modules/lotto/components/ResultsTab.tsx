@@ -89,7 +89,7 @@ function LatestDrawCard({
 
 export default function ResultsTab() {
   const [game, setGame] = useState<LottoGame | 'all'>('all');
-  const { draws, bets, loading, loadDraws, loadBets, updateBet } = useLottoStore();
+  const { draws, bets, loading, loadDraws, loadBets } = useLottoStore();
   const { trigger, feedbackMsg, isDisabled, buttonLabel, buttonClass } = useTriggerScraper();
 
   useEffect(() => {
@@ -136,21 +136,6 @@ export default function ResultsTab() {
     }
     return wins;
   }, [draws, bets]);
-
-  useEffect(() => {
-    for (const draw of draws) {
-      const results = getMatchingBets(draw, bets);
-      for (const r of results) {
-        if (r.bet.resultStatus === 'pending' && (r.bet.matchedCount !== r.matchedCount || r.bet.winnings !== r.prizeAmount)) {
-          updateBet(r.bet.id, {
-            resultStatus: r.isWin ? 'won' : 'lost',
-            matchedCount: r.matchedCount,
-            winnings: r.isWin ? r.prizeAmount : undefined,
-          });
-        }
-      }
-    }
-  }, [draws, bets, updateBet]);
 
   return (
     <div className="space-y-4">

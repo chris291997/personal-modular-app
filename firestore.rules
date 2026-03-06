@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users: read own doc for login; admins can read all for User Management
+    match /users/{userId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == userId ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'administrator'
+      );
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && (
+        request.auth.uid == userId ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'administrator'
+      );
+    }
+
+    // Budget data - user-specific by userId field
+    match /incomes/{docId} {
+      allow read, write: if request.auth != null && (
+        resource == null ? request.resource.data.userId == request.auth.uid
+        : resource.data.userId == request.auth.uid
+      );
+    }
+    match /expenses/{docId} {
+      allow read, write: if request.auth != null && (
+        resource == null ? request.resource.data.userId == request.auth.uid
+        : resource.data.userId == request.auth.uid
+      );
+    }
+    match /debts/{docId} {
+      allow read, write: if request.auth != null && (
+        resource == null ? request.resource.data.userId == request.auth.uid
+        : resource.data.userId == request.auth.uid
+      );
+    }
+    match /savingsGoals/{docId} {
+      allow read, write: if request.auth != null && (
+        resource == null ? request.resource.data.userId == request.auth.uid
+        : resource.data.userId == request.auth.uid
+      );
+    }
+    match /categories/{docId} {
+      allow read, write: if request.auth != null && (
+        resource == null ? request.resource.data.userId == request.auth.uid
+        : resource.data.userId == request.auth.uid
+      );
+    }
+
+    // Task module
+    match /tickets/{docId} {
+      allow read, write: if request.auth != null && (
+        resource == null ? request.resource.data.userId == request.auth.uid
+        : resource.data.userId == request.auth.uid
+      );
+    }
+
+    // Lotto module
+    match /lotto_bets/{docId} {
+      allow read, write: if request.auth != null && (
+        resource == null ? request.resource.data.userId == request.auth.uid
+        : resource.data.userId == request.auth.uid
+      );
+    }
+    match /lotto_reminders/{docId} {
+      allow read, write: if request.auth != null && (
+        resource == null ? request.resource.data.userId == request.auth.uid
+        : resource.data.userId == request.auth.uid
+      );
+    }
+
+    // Lotto results - read-only for clients; writes via Admin SDK/cron
+    match /lotto_results/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Notifications and devices
+    match /user_devices/{docId} {
+      allow read, write: if request.auth != null && (
+        resource == null ? request.resource.data.userId == request.auth.uid
+        : resource.data.userId == request.auth.uid
+      );
+    }
+    match /notifications/{docId} {
+      allow read, write: if request.auth != null && (
+        resource == null ? request.resource.data.userId == request.auth.uid
+        : resource.data.userId == request.auth.uid
+      );
+    }
+
+    // Site settings - all can read; only admins can write
+    match /settings/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'administrator';
+    }
+  }
+}

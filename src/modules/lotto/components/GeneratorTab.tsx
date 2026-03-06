@@ -4,6 +4,7 @@ import { SIX_NUMBER_GAMES, getGameLabel } from '../../../services/lottoService';
 import { LottoGame, LottoGeneratorStrategy } from '../../../types';
 import { useLottoStore } from '../../../stores/lottoStore';
 import { generateTickets, getGameConfig, getTicketStats } from '../utils/generator';
+import { getNextDrawDate } from '../utils/schedule';
 
 const STRATEGIES: {
   value: LottoGeneratorStrategy;
@@ -164,11 +165,10 @@ export default function GeneratorTab() {
 
   const handleSave = async () => {
     if (!ticket) return;
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextDraw = getNextDrawDate(ticket.game);
     await addBet({
       game: ticket.game,
-      drawDate: tomorrow,
+      drawDate: nextDraw,
       pickedNumbers: ticket.numbers,
       amount: undefined,
       source: 'generated',

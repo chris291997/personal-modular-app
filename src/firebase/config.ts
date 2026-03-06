@@ -43,16 +43,21 @@ export { messaging };
 // Request notification permission and get token
 export const requestNotificationPermission = async (): Promise<string | null> => {
   if (!messaging) return null;
+  if (!('serviceWorker' in navigator)) return null;
 
   try {
     const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      const token = await getToken(messaging, {
-        vapidKey: VAPID_KEY // Get this from Firebase Console > Cloud Messaging > Web Push certificates
-      });
-      return token;
-    }
-    return null;
+    if (permission !== 'granted') return null;
+
+    // Use the active PWA service worker; getToken fails with "no active Service Worker"
+    // when it defaults to firebase-messaging-sw.js while the PWA sw.js controls the page.
+    const registration = await navigator.serviceWorker.ready;
+
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: registration,
+    });
+    return token;
   } catch (error) {
     console.error('Error getting notification token:', error);
     return null;

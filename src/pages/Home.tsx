@@ -16,7 +16,7 @@ export default function Home() {
   const { formatCurrency } = useCurrency();
   
   // Use stores
-  const { incomes, expenses, debts, savingsGoals, loadIncomes, loadExpenses, loadDebts, loadSavingsGoals } = useBudgetStore();
+  const { incomes, expenses, debts, savingsGoals, errors, loadIncomes, loadExpenses, loadDebts, loadSavingsGoals } = useBudgetStore();
   const { tickets, loadTickets } = useTaskStore();
 
   useEffect(() => {
@@ -56,6 +56,21 @@ export default function Home() {
           Welcome back to your dashboard
         </p>
       </div>
+
+      {/* Firestore / data connection error banner */}
+      {(errors.incomes || errors.expenses || errors.debts || errors.savingsGoals) && (
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 p-3 md:p-4">
+          <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+            Can&apos;t load your data
+          </p>
+          <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+            {errors.incomes || errors.expenses || errors.debts || errors.savingsGoals}
+          </p>
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+            If you see &quot;Missing or insufficient permissions&quot;, check Firestore rules and that your documents have a userId matching your account. See docs/FIREBASE_SETUP.md for troubleshooting.
+          </p>
+        </div>
+      )}
 
       {/* Total Balance and Modules - Side by Side */}
       <div className="grid grid-cols-2 gap-3 md:gap-4 w-full">

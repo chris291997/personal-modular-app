@@ -10,6 +10,7 @@ import {
   Timestamp,
   updateDoc,
   where,
+  deleteField,
 } from 'firebase/firestore';
 import {
   LottoBet,
@@ -69,7 +70,7 @@ const mapReminder = (id: string, data: Record<string, unknown>): LottoReminder =
   updatedAt: (data.updatedAt as Timestamp)?.toDate?.() || new Date(),
 });
 
-export const getDrawResults = async (game?: LottoGame, limitCount = 200): Promise<LottoDrawResult[]> => {
+export const getDrawResults = async (game?: LottoGame, limitCount = 500): Promise<LottoDrawResult[]> => {
   try {
     // Avoid composite index requirement by ordering first, then filtering in memory.
     const snapshot = await getDocs(query(collection(db, 'lotto_results'), orderBy('drawDate', 'desc')));
@@ -149,7 +150,13 @@ export const updateBet = async (id: string, updates: Partial<LottoBet>): Promise
   if (updates.amount !== undefined) updatePayload.amount = updates.amount;
   if (updates.source !== undefined) updatePayload.source = updates.source;
   if (updates.strategyUsed !== undefined) updatePayload.strategyUsed = updates.strategyUsed;
-  if (updates.resultStatus !== undefined) updatePayload.resultStatus = updates.resultStatus;
+  if (updates.resultStatus !== undefined) {
+    updatePayload.resultStatus = updates.resultStatus;
+    if (updates.resultStatus === 'pending') {
+      updatePayload.matchedCount = deleteField();
+      updatePayload.winnings = deleteField();
+    }
+  }
   if (updates.matchedCount !== undefined) updatePayload.matchedCount = updates.matchedCount;
   if (updates.winnings !== undefined) updatePayload.winnings = updates.winnings;
   if (updates.isPlaced !== undefined) updatePayload.isPlaced = updates.isPlaced;

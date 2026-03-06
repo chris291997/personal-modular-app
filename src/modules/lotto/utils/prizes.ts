@@ -1,9 +1,43 @@
 import { LottoBet, LottoDrawResult, LottoGame } from '../../../types';
 import { SIX_NUMBER_GAMES } from '../../../services/lottoService';
 
+/** Safely get a Date (handles Firestore Timestamp or Date) */
+function toDate(val: Date | { toDate?: () => Date }): Date {
+  if (val instanceof Date) return val;
+  if (val && typeof (val as { toDate?: () => Date }).toDate === 'function') {
+    return (val as { toDate: () => Date }).toDate();
+  }
+  return new Date(val as unknown as string | number);
+}
+
+/** Format date as YYYY-MM-DD in local timezone (avoids time/timezone edge cases) */
+function toDateKey(date: Date | { toDate?: () => Date }): string {
+  const d = toDate(date);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 /** Same calendar day (local timezone) */
 export function isSameDrawDate(d: Date, b: Date): boolean {
-  return d.getFullYear() === b.getFullYear() && d.getMonth() === b.getMonth() && d.getDate() === b.getDate();
+  return toDateKey(d) === toDateKey(b);
+}
+
+/** Draw date within ±1 day of bet (for reconciling timezone/scraper date quirks) */
+function isDrawDateWithinOneDay(d: Date, b: Date): boolean {
+  const dTime = new Date(toDateKey(d)).getTime();
+  const bTime = new Date(toDateKey(b)).getTime();
+  const oneDay = 24 * 60 * 60 * 1000;
+  return Math.abs(dTime - bTime) <= oneDay;
+}
+
+/** Draw date is same day OR day after bet */
+export function isDrawDateSameOrNextDay(d: Date, b: Date): boolean {
+  const dDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const bDay = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
+  const oneDay = 24 * 60 * 60 * 1000;
+  return dDay >= bDay && dDay <= bDay + oneDay;
 }
 
 /** Count how many of bet's picked numbers match the draw combination */
@@ -101,6 +135,39 @@ export function getMatchingBets(
       const prizeShared = prize?.shared ?? false;
       return { bet, draw, matchedCount, hitNumbers, isWin, prizeLabel, prizeAmount, prizeShared };
     });
+}
+
+/**
+ * For pending bets: find a matching draw using relaxed date (±1 day).
+ * Handles timezone/scraper date mismatches (e.g. bet 3/4, draw stored as 3/3).
+ * When multiple draws match, picks exact date first, else closest by date.
+ */
+export function findRelaxedMatch(
+  bet: LottoBet,
+  draws: LottoDrawResult[]
+): BetMatchResult | null {
+  if (!SIX_NUMBER_GAMES.includes(bet.game as LottoGame)) return null;
+
+  const candidates = draws
+    .filter(d => d.game === bet.game && isDrawDateWithinOneDay(d.drawDate, bet.drawDate))
+    .map(draw => {
+      const matchedCount = countMatches(draw, bet);
+      const hitNumbers = getHitNumbers(draw, bet);
+      const prize = getPrizeForMatch(draw, matchedCount);
+      const isWin = matchedCount >= 3;
+      const prizeLabel = prize?.label ?? `${matchedCount}/6 matches`;
+      const prizeAmount = prize?.amount ?? 0;
+      const prizeShared = prize?.shared ?? false;
+      const dateDiff = Math.abs(
+        new Date(toDateKey(draw.drawDate)).getTime() - new Date(toDateKey(bet.drawDate)).getTime()
+      );
+      return { bet, draw, matchedCount, hitNumbers, isWin, prizeLabel, prizeAmount, prizeShared, dateDiff };
+    });
+
+  if (candidates.length === 0) return null;
+  const best = candidates.sort((a, b) => a.dateDiff - b.dateDiff)[0];
+  const { dateDiff, ...result } = best;
+  return result;
 }
 
 /** All wins across draws for congratulations banner */

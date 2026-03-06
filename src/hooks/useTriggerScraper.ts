@@ -88,7 +88,7 @@ export function useTriggerScraper() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ months_back }),
       });
-      const data = await res.json() as { ok?: boolean; message?: string; error?: string };
+      const data = await res.json() as { ok?: boolean; message?: string; error?: string; hint?: string; detail?: string };
 
       if (res.ok && data.ok) {
         // In timed mode, mark this slot as used for today
@@ -107,7 +107,8 @@ export function useTriggerScraper() {
         );
       } else {
         setStatus('error');
-        setFeedbackMsg(data.error ?? 'Failed to trigger scraper.');
+        const msg = data.error ?? 'Failed to trigger scraper.';
+        setFeedbackMsg(data.hint ? `${msg} ${data.hint}` : msg);
       }
     } catch {
       setStatus('error');

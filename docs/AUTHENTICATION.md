@@ -317,6 +317,36 @@ Empty `enabledModules` array means the user can access all modules (admin only).
 
 **Fix**: Create the Firestore document (see Option 1, Step 8-11 above).
 
+### "Missing or insufficient permissions" (correct credentials)
+
+**Cause**: Firebase Auth succeeds (credentials are correct), but **Firestore security rules** block the read of your user document or other data. This happens right after login when the app fetches `users/{your-uid}`.
+
+**Fix**:
+
+1. **Open Firebase Console** → Your project → **Firestore Database** → **Rules** tab
+2. **Check your rules** – you need a rule that allows authenticated users to read their own user document:
+   ```javascript
+   match /users/{userId} {
+     allow read, write: if request.auth != null && request.auth.uid == userId;
+   }
+   ```
+3. **Quick fix (development only)**: If rules are too restrictive, temporarily use permissive rules to test:
+   ```javascript
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /{document=**} {
+         allow read, write: if request.auth != null;
+       }
+     }
+   }
+   ```
+   ⚠️ This allows any logged-in user to read/write all data. Only for debugging!
+4. **Publish** the rules and wait ~1 minute for them to propagate
+5. **Hard refresh** your browser (Ctrl+F5) and try logging in again
+
+**Full production rules** are in `docs/FIRESTORE_COLLECTIONS.md` – copy them to Firestore Console → Rules → Publish.
+
 ### Admin API Not Working
 
 **Possible causes**:

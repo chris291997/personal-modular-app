@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getFirebaseAdminServices } from './_lib/firebaseAdmin';
+import { getFirebaseAdminServices, getErrorMessage } from './_lib/firebaseAdmin.js';
 
 /**
  * POST /api/trigger-scraper
@@ -9,27 +9,40 @@ import { getFirebaseAdminServices } from './_lib/firebaseAdmin';
  *   GITHUB_TOKEN      — Personal Access Token with "repo" + "actions:write" scope
  *   GITHUB_OWNER      — GitHub username or org (e.g. "johndoe")
  *   GITHUB_REPO       — Repository name (e.g. "personal-management-app")
+ *   FIREBASE_SERVICE_ACCOUNT — Firebase Admin SDK service account JSON (for slot settings)
  *
  * Optional body: { months_back: "1" }
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
 
-  const token = process.env.GITHUB_TOKEN;
-  const owner = process.env.GITHUB_OWNER;
-  const repo  = process.env.GITHUB_REPO;
+    const token = process.env.GITHUB_TOKEN;
+    const owner = process.env.GITHUB_OWNER;
+    const repo  = process.env.GITHUB_REPO;
 
-  if (!token || !owner || !repo) {
-    return res.status(500).json({
-      error: 'Missing GITHUB_TOKEN, GITHUB_OWNER, or GITHUB_REPO environment variables.',
-      hint: 'Add them in Vercel Dashboard → Settings → Environment Variables.',
-    });
-  }
+    if (!token || !owner || !repo) {
+      return res.status(500).json({
+        error: 'Missing GITHUB_TOKEN, GITHUB_OWNER, or GITHUB_REPO environment variables.',
+        hint: 'Add them in Vercel Dashboard → Settings → Environment Variables.',
+      });
+    }
 
-  const months_back: string = (req.body as { months_back?: string })?.months_back ?? '1';
-  const { db } = getFirebaseAdminServices();
+    const months_back: string = (req.body as { months_back?: string })?.months_back ?? '1';
+
+    let db;
+    try {
+      db = getFirebaseAdminServices().db;
+    } catch (fbErr) {
+      console.error('[trigger-scraper] Firebase Admin init failed:', getErrorMessage(fbErr));
+      return res.status(500).json({
+        error: 'Server configuration error',
+        detail: getErrorMessage(fbErr),
+        hint: 'Ensure FIREBASE_SERVICE_ACCOUNT is set in Vercel → Settings → Environment Variables.',
+      });
+    }
 
   // Resolve current PHT date/hour on the server to enforce a global slot lock.
   const nowPHT = new Intl.DateTimeFormat('en-CA', {
@@ -111,4 +124,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     error: `GitHub API returned ${response.status}`,
     detail,
   });
+  } catch (err) {
+    console.error('[trigger-scraper] Unhandled error:', err);
+    return res.status(500).json({
+      error: 'Server error',
+      detail: getErrorMessage(err),
+    });
+  }
 }

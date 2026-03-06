@@ -1,8 +1,10 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Ticket, Trash2 } from 'lucide-react';
 import { DEFAULT_LOTTO_GAMES, getGameLabel, SIX_NUMBER_GAMES } from '../../../services/lottoService';
 import { LottoBet, LottoGame } from '../../../types';
 import { useLottoStore } from '../../../stores/lottoStore';
+import { getNextDrawDate } from '../utils/schedule';
+import { findRelaxedMatch, isSameDrawDate } from '../utils/prizes';
 import { useBudgetStore } from '../../../stores/budgetStore';
 import { getGameConfig } from '../utils/generator';
 
@@ -12,6 +14,23 @@ const normalizePick = (input: string, pickCount: number): number[] => {
     .map(item => Number(item.trim()))
     .filter(item => Number.isFinite(item));
   return Array.from(new Set(parsed)).slice(0, pickCount);
+};
+
+/** True if this bet's draw has ended (draw date is before today) */
+const isDrawEnded = (bet: LottoBet): boolean => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const drawDay = new Date(bet.drawDate);
+  drawDay.setHours(0, 0, 0, 0);
+  return drawDay.getTime() < today.getTime();
+};
+
+/** Format date as YYYY-MM-DD for date input (local timezone) */
+const toDateInputValue = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 };
 
 const STATUS_STYLE: Record<string, string> = {
@@ -119,14 +138,25 @@ function PlaceConfirm({
 }
 
 export default function BetsTab() {
-  const { bets, loading, addBet, updateBet, deleteBet } = useLottoStore();
+  const { draws, bets, loading, addBet, updateBet, deleteBet, loadDraws, loadBets } = useLottoStore();
   const { addExpense } = useBudgetStore();
 
   const [game, setGame] = useState<LottoGame>('ultra_6_58');
-  const [drawDate, setDrawDate] = useState(new Date().toISOString().slice(0, 10));
+  const [drawDate, setDrawDate] = useState(() => toDateInputValue(getNextDrawDate('ultra_6_58')));
   const [numbersText, setNumbersText] = useState('');
   const [amount, setAmount] = useState<string>('');
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  // When game changes, default draw date to the next draw for that game
+  useEffect(() => {
+    setDrawDate(toDateInputValue(getNextDrawDate(game)));
+  }, [game]);
+
+  // When we have pending-ended bets but no draws loaded, force load draws
+  useEffect(() => {
+    const hasPendingEnded = bets.some(b => b.resultStatus === 'pending' && isDrawEnded(b));
+    if (hasPendingEnded && draws.length === 0 && !loading.draws) loadDraws(undefined, true);
+  }, [bets, draws.length, loading.draws, loadDraws]);
 
   const config = useMemo(() => getGameConfig(game), [game]);
   const helpText = useMemo(
@@ -141,9 +171,12 @@ export default function BetsTab() {
       alert(helpText);
       return;
     }
+    // Parse as local date to avoid UTC midnight shifting to previous day (e.g. PH timezone)
+    const [y, m, d] = drawDate.split('-').map(Number);
+    const betDrawDate = new Date(y, m - 1, d);
     await addBet({
       game,
-      drawDate: new Date(drawDate),
+      drawDate: betDrawDate,
       pickedNumbers: picks.sort((a, b) => a - b),
       amount: amount.trim() ? Number(amount) : undefined,
       source: 'manual',
@@ -182,6 +215,25 @@ export default function BetsTab() {
     [bets]
   );
 
+  const hasMatchingResult = useCallback((bet: LottoBet): boolean => {
+    const exactMatch = draws.some(
+      d => d.game === bet.game && isSameDrawDate(d.drawDate, bet.drawDate)
+    );
+    const relaxedMatch = findRelaxedMatch(bet, draws);
+    return exactMatch || relaxedMatch != null;
+  }, [draws]);
+
+  const endedPendingBets = useMemo(
+    () => bets.filter(b => b.resultStatus === 'pending' && isDrawEnded(b) && !hasMatchingResult(b)),
+    [bets, hasMatchingResult]
+  );
+
+  const handleMarkAllEndedAsLost = async () => {
+    for (const bet of endedPendingBets) {
+      await updateBet(bet.id, { resultStatus: 'lost' });
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Add bet form */}
@@ -211,6 +263,9 @@ export default function BetsTab() {
             onChange={event => setDrawDate(event.target.value)}
             className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm"
           />
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            Next draw: {getNextDrawDate(game).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} 9:00 PM
+          </p>
         </div>
         <div className="md:col-span-2">
           <label htmlFor="bet-numbers" className="block text-sm mb-1 text-gray-700 dark:text-gray-300">Numbers</label>
@@ -242,6 +297,31 @@ export default function BetsTab() {
           </button>
         </div>
       </form>
+
+      {/* Bulk action for pending bets whose draw has ended */}
+      {endedPendingBets.length > 0 && (
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 p-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            {endedPendingBets.length} pending bet{endedPendingBets.length !== 1 ? 's' : ''} for draw{endedPendingBets.length !== 1 ? 's' : ''} that have ended.
+            Sync to match with results, or mark as lost.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { loadDraws(undefined, true); void loadBets(true); }}
+              disabled={loading.draws}
+              className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-medium"
+            >
+              {loading.draws ? 'Syncing…' : 'Sync Results'}
+            </button>
+            <button
+              onClick={handleMarkAllEndedAsLost}
+              className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium"
+            >
+              Mark all as lost
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Bet list */}
       <div className="space-y-3">
@@ -301,6 +381,24 @@ export default function BetsTab() {
 
               {/* Right: actions */}
               <div className="flex items-center gap-2 shrink-0">
+                {(bet.resultStatus === 'lost' || bet.resultStatus === 'won') && !hasMatchingResult(bet) && (
+                  <button
+                    onClick={() => updateBet(bet.id, { resultStatus: 'pending' })}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs font-medium"
+                    title="Revert to pending (no matching result yet)"
+                  >
+                    Revert to Pending
+                  </button>
+                )}
+                {bet.resultStatus === 'pending' && isDrawEnded(bet) && !hasMatchingResult(bet) && (
+                  <button
+                    onClick={() => updateBet(bet.id, { resultStatus: 'lost' })}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 text-xs font-medium transition-colors"
+                    title="Draw has ended — mark as lost"
+                  >
+                    Mark as Lost
+                  </button>
+                )}
                 {!bet.isPlaced && (
                   <button
                     onClick={() => setConfirmingId(confirmingId === bet.id ? null : bet.id)}
